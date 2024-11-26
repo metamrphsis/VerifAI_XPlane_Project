@@ -1,0 +1,2015 @@
+Now I am going to share some more Scenic documentation with you for you to learn Scenic programming language in detail so that you can help me write scenic program to complete my project. Please read, study, and analyze the following Command-Line Options Subsection from the Language and Tool Reference section from the Scenic documentation in detail:
+
+..  _options:
+
+Command-Line Options
+====================
+
+The :command:`scenic` command supports a variety of options. Run :command:`scenic -h` for a full list
+with short descriptions; we elaborate on some of the most important options below.
+
+Options may be given before and after the path to the Scenic file to run, so the syntax of the command is:
+
+.. code-block:: console
+
+	$ scenic [options] FILE [options]
+
+General Scenario Control
+------------------------
+
+.. option:: -m <model>, --model <model>
+
+	Specify the :term:`world model` to use for the scenario, overriding any :keyword:`model` statement
+	in the scenario. The argument must be the fully :term:`qualified name` of a Scenic module
+	found on your :envvar:`PYTHONPATH` (it does not necessarily need to be built into
+	Scenic).
+	This allows scenarios written using a generic model, like that provided by the :ref:`driving_domain`, to be executed in a particular simulator (see the :ref:`dynamic scenarios tutorial <dynamics_running_examples>` for examples).
+
+	The equivalent of this option for the Python API is the ``model`` argument to `scenic.scenarioFromFile`.
+
+.. option:: -p <param> <value>, --param <param> <value>
+
+	Specify the value of a :term:`global parameter`. This assignment overrides any
+	:keyword:`param` statements in the scenario. If the given value can be interpreted as an
+	`int` or `float`, it is; otherwise it is kept as a string.
+
+	The equivalent of this option for the Python API is the ``params`` argument to `scenic.scenarioFromFile` (which, however, does not attempt to convert strings to numbers).
+
+.. option:: --count <number>
+
+	Number of successful scenes to generate or simulations to run (i.e., not counting rejected scenes/simulations).
+	The default is to run forever.
+
+.. option:: -s <seed>, --seed <seed>
+
+	Specify the random seed used by Scenic, to make sampling deterministic.
+
+	This option sets the seed for the Python random number generator :mod:`random`
+	and the :mod:`numpy` random number generator :mod:`numpy.random`, so
+	external Python code called from within Scenic can also be made deterministic
+	(although :mod:`random` and :mod:`numpy.random` should not be used in place of
+	Scenic's own sampling constructs in Scenic code).
+
+.. option:: --scenario <scenario>
+
+	If the given Scenic file defines multiple scenarios, select which one to run.
+	The named :term:`modular scenario` must not require any arguments.
+
+	The equivalent of this option for the Python API is the ``scenario`` argument to `scenic.scenarioFromFile`.
+
+.. option:: --2d
+
+	Compile the scenario in :ref:`2D compatibility mode`.
+
+	The equivalent of this option for the Python API is the ``mode2D`` argument to `scenic.scenarioFromFile`.
+
+Dynamic Simulations
+-------------------
+
+.. option:: -S, --simulate
+
+	Run dynamic simulations from scenes instead of plotting scene diagrams. This option
+	will only work for scenarios which specify a simulator, which is done automatically
+	by the :term:`world models` for the simulator interfaces that support dynamic scenarios, e.g.
+	`scenic.simulators.carla.model` and `scenic.simulators.lgsvl.model`. If your scenario
+	is written for an abstract domain, like `scenic.domains.driving`, you will need to
+	use the :option:`--model` option to specify the specific model for the simulator you
+	want to use.
+
+.. option:: --time <steps>
+
+	Maximum number of time steps to run each simulation (the default is infinity).
+	Simulations may end earlier if termination criteria defined in the scenario are met (see :keyword:`terminate when` and :keyword:`terminate`).
+
+Debugging
+---------
+
+.. option:: --version
+
+	Show which version of Scenic is being used.
+
+.. option:: -v <verbosity>, --verbosity <verbosity>
+
+	Set the verbosity level, from 0 to 3 (default 1):
+
+		0
+			Nothing is printed except error messages and
+			:doc:`warnings <python:library/warnings>` (to ``stderr``). Warnings can be
+			suppressed using the :envvar:`PYTHONWARNINGS` environment variable.
+		1
+			The main steps of compilation and scene generation are indicated, with timing
+			statistics.
+		2
+			Additionally, details on which modules are being compiled and the reasons for
+			any scene/simulation rejections are printed.
+		3
+			Additionally, the :term:`actions` taken by each agent at each time step of a dynamic
+			simulation are printed.
+
+	This option can be configured from the Python API using `scenic.setDebuggingOptions`.
+
+.. option:: --show-params
+
+	Show values of :term:`global parameters` for each generated scene.
+
+.. option:: --show-records
+
+	Show recorded values (see :keyword:`record`) for each dynamic simulation.
+
+.. option:: -b, --full-backtrace
+
+	Include Scenic's internals in backtraces printed for uncaught exceptions.
+	This information will probably only be useful if you are developing Scenic.
+
+	This option can be enabled from the Python API using `scenic.setDebuggingOptions`.
+
+.. option:: --pdb
+
+	If an error occurs, enter the Python interactive debugger :mod:`pdb`.
+	Implies the :option:`-b` option.
+
+	This option can be enabled from the Python API using `scenic.setDebuggingOptions`.
+
+.. option:: --pdb-on-reject
+
+	If a scene/simulation is rejected (so that another must be sampled), enter :mod:`pdb`.
+	Implies the :option:`-b` option.
+
+	This option can be enabled from the Python API using `scenic.setDebuggingOptions`.
+
+
+..  _api:
+
+Using Scenic Programmatically
+=============================
+
+While Scenic is most easily invoked as a command-line tool, it also provides a Python API
+for compiling Scenic programs, sampling scenes from them, and running dynamic
+simulations.
+
+Compiling Scenarios and Generating Scenes
+-----------------------------------------
+
+The top-level interface to Scenic is provided by two functions in the ``scenic`` module
+which compile a Scenic program:
+
+.. autofunction:: scenic.scenarioFromFile
+
+.. autofunction:: scenic.scenarioFromString
+
+The resulting `Scenario` object represents the abstract scenario defined by the Scenic
+program. To sample concrete scenes from this object, you can call the `Scenario.generate`
+method, which returns a `Scene`. If you are only using static scenarios, you can extract
+the sampled values for all the global parameters and objects in the scene from the
+`Scene` object. For example:
+
+.. testsetup::
+
+	import os
+	os.chdir('..')
+
+.. testcode::
+
+	import random, scenic
+	random.seed(12345)
+	scenario = scenic.scenarioFromString('ego = new Object with foo Range(0, 5)')
+	scene, numIterations = scenario.generate()
+	print(f'ego has foo = {scene.egoObject.foo}')
+
+.. testoutput::
+
+	ego has foo = 2.083099362726706
+
+Running Dynamic Simulations
+---------------------------
+
+To run dynamic scenarios, you must instantiate an instance of the `Simulator` class for
+the particular simulator you want to use. Each simulator interface that supports dynamic
+simulations defines a subclass of `Simulator`; for example, `NewtonianSimulator` for the
+simple Newtonian simulator built into Scenic. These subclasses provide simulator-specific
+functionality, and have different requirements for their use: see the specific
+documentation of each interface under `scenic.simulators` for details.
+
+Once you have an instance of `Simulator`, you can ask it to run a simulation from a
+`Scene` by calling the `Simulator.simulate` method. If Scenic is able to run a simulation
+that satisfies all the requirements in the Scenic program (potentially after multiple
+attempts -- Scenic uses rejection sampling), this method will return a `Simulation`
+object. Results of the simulation can then be obtained by inspecting its ``result``
+attribute, which is an instance of `SimulationResult` (simulator-specific subclasses of
+`Simulation` may also provide additional information). For example:
+
+.. testcode::
+
+	import scenic
+	from scenic.simulators.newtonian import NewtonianSimulator
+	scenario = scenic.scenarioFromFile('examples/driving/badlyParkedCarPullingIn.scenic',
+	                                   model='scenic.simulators.newtonian.driving_model',
+	                                   mode2D=True)
+	scene, _ = scenario.generate()
+	simulator = NewtonianSimulator()
+	simulation = simulator.simulate(scene, maxSteps=10)
+	if simulation:	# `simulate` can return None if simulation fails
+		result = simulation.result
+		for i, state in enumerate(result.trajectory):
+			egoPos, parkedCarPos = state
+			print(f'Time step {i}: ego at {egoPos}; parked car at {parkedCarPos}')
+
+.. testoutput::
+	:hide:
+	:options: +ELLIPSIS
+
+	Time step 0: ego at ...; parked car at ...
+	Time step 1: ego at ...; parked car at ...
+	Time step 2: ego at ...; parked car at ...
+	Time step 3: ego at ...; parked car at ...
+	Time step 4: ego at ...; parked car at ...
+	Time step 5: ego at ...; parked car at ...
+	Time step 6: ego at ...; parked car at ...
+	Time step 7: ego at ...; parked car at ...
+	Time step 8: ego at ...; parked car at ...
+	Time step 9: ego at ...; parked car at ...
+	Time step 10: ego at ...; parked car at ...
+
+If you want to monitor data from simulations to see if the system you are testing
+violates its specfications, you may want to use `VerifAI`_ instead of implementing your
+own code along the lines above. VerifAI supports running tests from Scenic programs,
+specifying system specifications using temporal logic or arbitrary Python monitor
+functions, actively searching the space of parameters in a Scenic program to find
+concrete scenarios where the system violates its specs [#f1]_, and more. See the VerifAI
+documentation for details.
+
+.. _serialization:
+
+Storing Scenes/Simulations for Later Use
+----------------------------------------
+
+`Scene` and `Simulation` objects are heavyweight and not themselves suitable for bulk
+storage or transmission over a network [#f2]_. However, Scenic provides serialization
+routines which can encode such objects into relatively short sequences of bytes. Compact
+encodings are achieved by storing only the sampled values of the primitive random
+variables in the scenario: all non-random information is obtained from the original
+Scenic file.
+
+Having compiled a Scenic scenario into a `Scenario` object, any scenes you generate from
+the scenario can be encoded as bytes using the `Scenario.sceneToBytes` method. For
+example, to save a scene to a file one could use code like the following:
+
+.. testcode::
+
+	import scenic, tempfile, pathlib
+	scenario = scenic.scenarioFromFile('examples/gta/parkedCar.scenic', mode2D=True)
+	scene, _ = scenario.generate()
+	data = scenario.sceneToBytes(scene)
+	with open(pathlib.Path(tempfile.gettempdir()) / 'test.scene', 'wb') as f:
+		f.write(data)
+	print(f'ego car position = {scene.egoObject.position}')
+
+.. testoutput::
+	:hide:
+
+	ego car position = ...
+
+Then you could restore the scene in another process, obtaining the same position for the ego car:
+
+.. testcode::
+
+	import scenic, tempfile, pathlib
+	scenario = scenic.scenarioFromFile('examples/gta/parkedCar.scenic', mode2D=True)
+	with open(pathlib.Path(tempfile.gettempdir()) / 'test.scene', 'rb') as f:
+		data = f.read()
+	scene = scenario.sceneFromBytes(data)
+	print(f'ego car position = {scene.egoObject.position}')
+
+.. testoutput::
+	:hide:
+
+	ego car position = ...
+
+.. testcleanup::
+
+	import pathlib, tempfile
+	path = pathlib.Path(tempfile.gettempdir()) / 'test.scene'
+	path.unlink()
+	os.chdir('docs')
+
+Notice how we need to compile the scenario a second time in order to decode the scene,
+if the original `Scenario` object is not available. If you need to send a large number
+of scenes from one computer to another, for example, it suffices to send the Scenic file
+for the underlying scenario, plus the encodings of each of the scenes.
+
+You can encode and decode simulations run from a `Scenario` in a similar way, using the
+`Scenario.simulationToBytes` and `Scenario.simulationFromBytes` methods. One additional
+concern when replaying a serialized simulation is that if your simulator is not
+deterministic (or you change the simulator configuration), the original simulation and
+its replay can diverge, leading to unexpected behavior or exceptions. Scenic can attempt
+to detect such divergences by saving the exact history of the simulation and comparing
+it to the replay, but this greatly increases the size of the encoded simulation. See
+`Simulator.simulate` for the available options.
+
+.. note::
+
+	The serialization format used for scenes and simulations is suitable for long-term
+	storage (for instance if you want to save all the simulations you've run so that you
+	can return to one later for further analysis), but it is not guaranteed to be
+	compatible across major versions of Scenic.
+
+.. seealso:: If you get exceptions or unexpected behavior when using the API, Scenic provides various debugging features: see :ref:`debugging`.
+
+.. rubric:: Footnotes
+
+.. [#f1] VerifAI's active samplers can be used directly from Scenic when VerifAI is
+	installed. See `scenic.core.external_params`.
+
+.. [#f2] If you really do need to store/transmit such objects, you may be able to do so
+	using `dill`_, a drop-in replacement for Python's standard `pickle` library. Be aware
+	that pickling will produce much larger encodings than Scenic's own APIs, as they need
+	to include all the information present in the original Scenic file and its associated
+	resources (e.g. for driving scenarios, the entire road map). Unpickling malicious
+	files can also trigger arbitrary code execution, while Scenic's deserialization APIs
+	can be used with untrusted data (as long as you trust the Scenic program you're
+	running, of course).
+
+.. _VerifAI: https://verifai.readthedocs.io/
+
+.. _dill: https://pypi.org/project/dill/
+
+
+..  _developing:
+
+Developing Scenic
+=================
+
+This page covers information useful if you will be developing Scenic, either changing the
+language itself or adding new built-in libraries or simulator interfaces.
+
+To find documentation (and code) for specific parts of Scenic's implementation, see our page on :doc:`internals`.
+
+Getting Started
+---------------
+
+Start by cloning our repository on GitHub and setting up your virtual environment.
+Then to install Scenic and its development dependencies in your virtual environment run:
+
+.. code-block:: console
+
+	$ python -m pip install -e ".[dev]"
+
+This will perform an "editable" install, so that any changes you make to Scenic's code will take effect immediately when running Scenic in your virtual environment.
+
+Scenic uses the `isort <https://pycqa.github.io/isort/>`_ and `black <https://black.readthedocs.io/en/stable/index.html>`_ tools to automatically sort ``import`` statements and enforce a consistent code style.
+Run the command :command:`pre-commit install` to set up hooks which will run every time you commit and correct any formatting problems (you can then inspect the files and try committing again).
+You can also manually run the formatters on the files changed since the last commit with :command:`pre-commit run`. [#f1]_
+
+Running the Test Suite
+----------------------
+
+Scenic has an extensive test suite exercising most of the features of the language. We
+use the `pytest <https://docs.pytest.org/en/latest/index.html>`_ Python testing tool. To
+run the entire test suite, run the command :command:`pytest` inside the virtual
+environment from the root directory of the repository.
+
+Some of the tests are quite slow, e.g. those which test the parsing and construction of
+road networks. We add a ``--fast`` option to pytest	which skips such tests, while
+still covering all of the core features of the language. So it is convenient to often run
+:command:`pytest --fast` as a quick check, remembering to run the full :command:`pytest`
+before making any final commits. You can also run specific parts of the test suite with a
+command like :command:`pytest tests/syntax/test_specifiers.py`, or use pytest's ``-k``
+option to filter by test name, e.g. :command:`pytest -k specifiers`.
+
+Note that many of Scenic's tests are probabilistic, so in order to reproduce a test
+failure you may need to set the random seed. We use the
+`pytest-randomly <https://github.com/pytest-dev/pytest-randomly>`_ plugin to help with
+this: at the beginning of each run of ``pytest``, it prints out a line like:
+
+.. code-block:: none
+
+	Using --randomly-seed=344295085
+
+Adding this as an option, i.e. running :command:`pytest --randomly-seed=344295085`, will
+reproduce the same sequence of tests with the same Python/Scenic random seed. As a
+shortcut, you can use :command:`--randomly-seed=last` to use the seed from the previous
+testing run.
+
+If you're running the test suite on a headless server or just want to stop windows from
+popping up during testing, use the :command:`--no-graphics` option to skip graphical
+tests.
+
+Prior to finalizing a PR or other substantial changes, it's a good idea to run the test suite under all major versions of Python that Scenic supports, in fresh virtual environments.
+You can do this automatically with the command :command:`tox`, which by default will test all supported major versions both with and without optional dependencies (this will take a long time).
+Some variations:
+
+* :command:`tox -p` will run the various combinations in parallel.
+
+* :command:`tox -m basic` skips testing installations with the optional dependencies.
+
+* :command:`tox -- --fast` only runs the "fast" tests. In general, any arguments after the :command:`--` will get passed to ``pytest``. For example,
+
+* :command:`tox -- tests/syntax/test_specifiers.py` only runs the tests in the given file.
+
+See the `Tox <https://tox.wiki/>`_ website for more information about the available options and how to configure Tox.
+
+
+.. _debugging:
+
+Debugging
+---------
+
+You can use Python's built-in debugger `pdb` to debug the parsing, compilation, sampling,
+and simulation of Scenic programs. The Scenic command-line option :option:`-b` will cause the
+backtraces printed from uncaught exceptions to include Scenic's internals; you can also
+use the :option:`--pdb` option to automatically enter the debugger on such exceptions.
+If you're trying to figure out why a scenario is taking many iterations of rejection
+sampling, first use the :option:`--verbosity` option to print out the reason for each
+rejection. If the problem doesn't become clear, you can use the :option:`--pdb-on-reject`
+option to automatically enter the debugger when a scene or simulation is rejected.
+
+If you're using the Python API instead of invoking Scenic from the command line, these
+debugging features can be enabled using the following function from the ``scenic`` module:
+
+.. autofunction:: scenic.setDebuggingOptions
+
+It is possible to put breakpoints into a Scenic program using the Python built-in
+function `breakpoint`. Note however that since code in a Scenic program is not always
+executed the way you might expect (e.g. top-level code is only run once, whereas code in
+requirements can run every time we generate a sample: see :ref:`how Scenic is compiled`), some care is needed when
+interpreting what you see in the debugger. The same consideration applies when adding
+`print` statements to a Scenic program. For example, a top-level :scenic:`print(x)` will
+not print out the actual value of :scenic:`x` every time a sample is generated: instead,
+you will get a single print at compile time, showing the `Distribution` object which
+represents the distribution of :scenic:`x` (and which is bound to :scenic:`x` in the Python
+namespace used internally for the Scenic module).
+
+Building the Documentation
+--------------------------
+
+Scenic's documentation is built using `Sphinx <https://www.sphinx-doc.org/>`_. The
+freestanding documentation pages (like this one) are found under the :file:`docs`
+folder, written in the :ref:`reStructuredText format <rst-primer>`.
+The detailed documentation of Scenic's internal classes, functions, etc. is largely
+auto-generated from their docstrings, which are written in a variant of Google's style
+understood by the `Napoleon <sphinx.ext.napoleon>`
+Sphinx extension (see the docstring of `Scenario.generate` for a simple example: click
+the ``[source]`` link to the right of the function signature to see the code).
+
+If you modify the documentation, you should build a copy of it locally to make sure
+everything looks good before you push your changes to GitHub (where they will be picked
+up automatically by `ReadTheDocs <https://readthedocs.org/>`_). To compile the
+documentation, enter the :file:`docs` folder and run :command:`make html`. The output
+will be placed in the :file:`docs/_build/html` folder, so the root page will be at
+:file:`docs/_build/html/index.html`. If your changes do not appear, it's possible that Sphinx
+has not detected them; you can run :command:`make clean` to delete all the files from the
+last compilation and start from a clean slate.
+
+Scenic extends Sphinx in a number of ways to improve the presentation of Scenic code and
+add various useful features: see :file:`docs/conf.py` for full details. Some of the most
+commonly-used features are:
+
+	* a ``scenic`` `role <https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html>`_
+	  which extends the standard Sphinx :rst:role:`samp` role with Scenic syntax highlighting;
+	* a ``sampref`` role which makes a cross-reference like :rst:role:`keyword` but allows
+	  emphasizing variables like :rst:role:`samp`;
+	* the :rst:role:`term` role for glossary terms is extended so that the cross-reference will
+	  work even if the link is plural but the glossary entry is singular or vice versa.
+
+.. rubric:: Footnotes
+
+.. [#f1] To run the formatters on *all* files, changed or otherwise, use :command:`make format` in the root directory of the repository. But this should not be necessary if you installed the pre-commit hooks and so all files already committed are clean.
+
+
+..  _internals:
+
+****************
+Scenic Internals
+****************
+
+This section of the documentation describes the implementation of Scenic.
+Much of this information will probably only be useful for people who need to make some change to the language (e.g. adding a new type of distribution).
+However, the detailed documentation on Scenic's abstract application domains (in `scenic.domains`) and simulator interfaces (in `scenic.simulators`) may be of interest to people using those features.
+
+.. toctree::
+   :maxdepth: 1
+
+   internals/compilation_overview
+   internals/compiler
+   internals/grammar
+
+Scenic Modules
+==============
+
+Detailed documentation on Scenic's components is organized by the submodules of the main ``scenic`` module:
+
+.. autosummary::
+   :toctree: modules
+   :recursive:
+
+   scenic.core
+   scenic.domains
+   scenic.formats
+   scenic.simulators
+   scenic.syntax
+
+The ``scenic`` module itself provides the top-level API for using Scenic: see :doc:`api`.
+
+
+.. _how Scenic is compiled:
+
+How Scenic is Compiled
+======================
+
+The process of compiling a Scenic program into a `Scenario` object can be split into several phases.
+Understanding what each phase does is useful if you plan to modify the Scenic language.
+
+For more details on Phases 1 and 2 (parsing Scenic and converting it into Python), see the :doc:`compiler`.
+
+Phase 1: Scenic Parser
+----------------------
+In this phase the program is parsed using the Scenic parser. The parser is generated from a PEG grammar (``scenic.gram``) using `the Pegen parser generator <https://we-like-parsers.github.io/pegen/index.html>`_.
+The parser generates an abstract syntax tree (Scenic AST) for the program. Scenic AST is a superset of Python AST defined in ``ast.py`` and has additional nodes for representing Scenic-specific constructs.
+
+Phase 2: Scenic Compiler
+------------------------
+In this phase, the Scenic AST is transformed into a Python AST. The Scenic Compiler walks the Scenic AST and replaces Scenic-specific nodes with corresponding Python AST nodes.
+
+Phase 3: AST Compilation
+------------------------
+Compile the Python AST down to a Python `code <bltin-code-objects>` object.
+
+Phase 4: Python Execution
+-------------------------
+In this phase the Python ``code`` object compiled in Phase 3 is executed.
+When run, the definitions of objects, global parameters, requirements, behaviors, etc. produce Python data structures used internally by Scenic to keep track of the distributions, functions, coroutines, etc. used in their definitions.
+For example, a random value will evaluate to a `Distribution` object storing information about which distribution it is drawn from; actually sampling from that distribution will not occur until after the compilation process (when calling `Scenario.generate`).
+A :keyword:`require` statement will likewise produce a closure which can be used at sampling time to check whether its condition is satisfied or not.
+
+Note that since this phase only happens once, at compile time and not sampling time, top-level code in a Scenic program [#f1]_ is only executed **once** even when sampling many scenes from it.
+This is done deliberately, in order to generate a static representation of the semantics of the Scenic program which can be used for sampling without needing to re-run the entire program.
+
+Phase 5: Scenario Construction
+------------------------------
+In this phase the various pieces of the internal representation of the program resulting from Phase 4 are bundled into a `Scenario` object and returned to the user.
+This phase is also where the program is analyzed and pruning techniques applied to optimize the scenario for later sampling.
+
+Sampling and Executing Scenarios
+--------------------------------
+
+Sampling scenes and executing dynamic simulations from them are not part of the compilation process [#f2]_.
+For documentation on how those are done, see `Scenario.generate` and `scenic.core.simulators` respectively.
+
+.. rubric:: Footnotes
+
+.. [#f1] As compared to code inside a ``require`` statement or a :term:`dynamic behavior`,
+   which will execute every time a scene is sampled or a simulation is run respectively.
+
+.. [#f2] Although there are some syntax errors which are currently not detected until those stages.
+
+
+Guide to the Scenic Parser & Compiler
+=====================================
+
+This page describes the process of parsing Scenic code and compiling it into equivalent Python.
+We also include a tutorial illustrating how to add a new syntax construct to Scenic.
+
+Architecture & Terminology
+--------------------------
+
+.. figure:: /images/parser_architecture.png
+  :alt: Scenic Parser & Compiler Architecture
+  :figclass: align-center
+
+Scenic AST
+~~~~~~~~~~
+
+A Scenic AST is an abstract syntax tree for representing Scenic programs.
+It is a superset of Python AST and includes nodes for Scenic-specific
+language constructs.
+
+The `scenic.syntax.ast` module defines all Scenic-specific AST nodes, which are instances of the `AST` class defined in the same file.
+
+AST nodes should include fields to store objects. To add fields, add a
+parameter to the initializer and define fields by assigning values to
+``self``.
+
+When adding fields, be sure to update the ``_fields`` and
+``__match_args__`` fields. ``_fields`` lists the names of the fields in
+the AST node and is used by the AST module to traverse the tree, fill in
+the missing information, etc. :obj:`~object.__match_args__` is used by the test
+suite to assert the structure of the AST node using Python's structural
+pattern matching.
+
+Scenic Grammar
+~~~~~~~~~~~~~~
+
+The Scenic Grammar (:file:`syntax/scenic.gram`) is a formal grammar that defines the syntax
+of the Scenic language. It is written as a `Parsing Expression Grammar <https://en.wikipedia.org/wiki/Parsing_expression_grammar>`_
+(PEG) using `the Pegen parser generator <https://we-like-parsers.github.io/pegen/index.html>`_.
+
+Please refer to `Pegen's documentation <https://we-like-parsers.github.io/pegen/grammar.html>`_ on how to write a grammar.
+
+Scenic Parser
+~~~~~~~~~~~~~
+
+The Scenic Parser takes Scenic source code and outputs the corresponding
+abstract syntax tree. It is generated from the grammar file using Pegen.
+
+When you modify :file:`scenic.gram`, you need to regenerate the parser
+by calling :command:`make` or running
+
+.. code-block:: console
+
+    $ python -m pegen ./src/scenic/syntax/scenic.gram -o ./src/scenic/syntax/parser.py
+
+at the project root.
+When running the test suite with :command:`pytest`, the parser is automatically updated before test execution.
+
+:file:`tests/syntax/test_parser.py` includes parser tests and ensures that the parser
+generates the desired AST.
+
+Scenic Compiler
+~~~~~~~~~~~~~~~
+
+The Scenic Compiler is a Scenic AST-to-Python AST compiler. The generated
+Python AST can be passed to the Python interpreter for execution.
+
+Internally, the compiler is a subclass of `ast.NodeTransformer`. It
+must define visitors for each Scenic AST node which return corresponding
+Python AST nodes.
+
+Tutorial: Adding New Syntax
+---------------------------
+
+In order to add new syntax, you'll want to do the following:
+
+1. add AST nodes to :file:`ast.py`
+2. add grammar to :file:`scenic.gram`
+3. write parser tests
+4. add visitor to :file:`compiler.py`
+5. write compiler tests
+
+The rest of this section will demonstrate how we can add the :keyword:`implies`
+operator using the new parser architecture.
+
+Step 1: Add AST Nodes
+~~~~~~~~~~~~~~~~~~~~~
+
+First, we define AST nodes that represent the syntax. Since the
+``implies`` operator is a binary operator, the AST node will have two
+fields for each operand.
+
+.. code-block:: python
+    :linenos:
+
+    class ImpliesOp(AST):
+        __match_args__ = ("hypothesis", "conclusion")
+
+        def __init__(
+           self, hypothesis: ast.AST, conclusion: ast.AST, *args: Any, **kwargs: Any
+        ) -> None:
+           super().__init__(*args, **kwargs)
+           self.hypothesis = hypothesis
+           self.conclusion = conclusion
+           self._fields = ["hypothesis", "conclusion"]
+
+* On line 1, `AST` (`scenic.syntax.ast.AST`, not :external:obj:`ast.AST`) is the base class that all Scenic AST nodes extend.
+
+* On line 2, ``__match_args__`` is a syntax for using `structural pattern
+  matching <https://peps.python.org/pep-0636/#matching-positional-attributes>`__
+  on argument positions. This is to make it easier to write parser tests.
+
+* On line 5, the initializer takes two required arguments corresponding to the operator's operands (``hypothesis`` and ``conclusion``). Note
+  that their types are :external:obj:`ast.AST`, which is the base class for *all* AST nodes,
+  including both Scenic AST nodes and Python AST nodes. The additional arguments ``*args`` and
+  ``**kwargs`` should be passed to the base class’ initializer to store
+  extra information such as line number, offset, etc.
+
+* On line 10, ``_fields`` is a special field that specifies the child nodes. This is used by
+  the library functions such as ``generic_visit`` to traverse the
+  syntax tree.
+
+Step 2: Add Grammar
+~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    The grammar described here is slightly simplified for the sake of brevity.
+    For the actual grammar used by the parser, see the `formal grammar`.
+
+The next step is to update the :file:`scenic.gram` file with a rule that matches our new construct.
+We'll add a rule called ``scenic_implication``: all Scenic grammar rules should be prefixed with ``scenic_`` so that we can
+easily distinguish Scenic-specific rules from those in the original Python grammar.
+
+.. code-block:: pegen
+
+   scenic_implication (memo):
+       | invalid_scenic_implication  # special rule to explain invalid uses of "implies"
+       | a=disjunction "implies" b=disjunction { s.ImpliesOp(a, b, LOCATIONS) }
+       | disjunction
+
+Our rule has three alternatives, which the parser considers in order.
+For the moment, let's consider the second alternative, which is the one defining the actual syntax of ``implies``: it matches any text matching the ``disjunction`` rule, followed by the word ``implies``, followed by any text matching the ``disjunction`` rule.
+In the grammar, precedence and associativity of operators are defined by using
+separate rules for each precedence level.
+The ``disjunction`` rule matches any expression defined using ``or`` or an operator with higher precedence than ``or``.
+Since implication should bind less tightly than ``or``, we use ``disjunction`` for its operands in our rule.
+To allow ``scenic_implication`` to match higher-precedence operators as well as just ``implies``, we add the third alternative, which matches any ``disjunction``.
+
+Returning to the second alternative, we define its outcome, i.e., the AST node which it generates if it matches, using the ordinary Python code inside the curly brackets.
+Here ``s`` refers to the Scenic AST module, so :python:`s.ImpliesOp(a, b, LOCATIONS)` creates an instance of the ``ImpliesOp`` class we defined above with ``a`` the ``hypothesis`` and ``b`` the ``conclusion``.
+The special term ``LOCATIONS`` will be replaced with a set of named arguments to
+express source code locations.
+
+The ``implies`` operator is unique in that it takes exactly two
+operands: we disallow :requirement:`A implies B implies C` as being ambiguous, rather than parsing it as :requirement:`(A implies B) implies C` (left-associatively) or :requirement:`A implies (B implies C)` (right-associatively).
+In order to block the ambiguous case and force the developer to make the meaning clear by wrapping one of the operands in parentheses, our rule says that the right-hand side of the implication must be a ``disjunction`` rather than an arbitrary expression.
+This will cause the code :requirement:`A implies B implies C` to result in a syntax error, because no rules will match.
+
+In order to replace the generic syntax error with a more informative one, we add the ``invalid_scenic_implication`` rule as the first alternative.
+Rules with the ``invalid_`` prefix are special rules for generating
+custom error messages.
+Pegen first tries to parse the input *without*
+using ``invalid_`` rules. If that fails, it tries parsing again, this time allowing ``invalid_``
+rules: those rules can then generate errors when they match.
+
+.. code-block:: pegen
+
+   invalid_scenic_implication[NoReturn]:
+       | a=disjunction "implies" disjunction "implies" b=disjunction {
+           self.raise_syntax_error_known_range(
+               f"`implies` must take exactly two operands", a, b
+           )
+        }
+
+The ``invalid_scenic_implication`` rule looks for an implication with more
+than two arguments (e.g. :requirement:`A implies B implies C`) and raises a syntax
+error with a detailed error message.
+
+Once we are done with the grammar, run :command:`make` to generate the parser
+from the grammar. If there is no error, the file :file:`src/scenic/syntax/parser.py` will be created.
+
+Step 3: Write Parser Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now that we have the parser, we need to add test cases to check that it works as we expect.
+
+The number of test cases depends on the complexity of the grammar rule.
+Here, I decided to add the following three cases:
+
+.. code:: python
+
+   class TestOperator: # 1
+       def test_implies_basic(self): # 2
+           mod = parse_string_helper("x implies y") # 3
+           stmt = mod.body[0]
+           match stmt:
+               case Expr(ImpliesOp(Name("x"), Name("y"))): # 4
+                   assert True
+               case _:
+                   assert False # 5
+
+       def test_implies_precedence(self):
+           mod = parse_string_helper("x implies y or z")
+           stmt = mod.body[0]
+           match stmt:
+               case Expr(ImpliesOp(Name("x"), BoolOp(Or(), [Name("y"), Name("z")]))):
+                   assert True
+               case _:
+                   assert False
+
+       def test_implies_three_operands(self):
+           with pytest.raises(SyntaxError) as e:  # 6
+               parse_string_helper("x implies y implies z")
+           assert "must take exactly two operands" in e.value.msg
+
+1. ``TestOperator`` is a test class that has all tests related to Scenic
+   operators, so it is natural for us to add test cases here.
+2. The test case name should contain the names of the grammar we’re
+   testing (``implies`` in this case)
+3. ``parse_string_helper`` is a thin wrapper around the parser. The
+   return value would be a module, but we’re only concerned about the
+   first statement of the body, so we extract that to the ``stmt``
+   variable.
+4. We use structural pattern matching to match the result with the
+   expected AST structure. In this case, the statement is expected to be
+   an ``Expr`` whose value is an ``ImpliesOp`` that takes ``Name``\ s,
+   ``x`` and ``y``.
+5. Be sure to add an otherwise case (with ``_``) and assert false.
+   Otherwise, no error will be caught even if the returned node does not
+   match the expected structure.
+6. Errors can be tested using `pytest.raises`.
+
+Step 4: Add Visitor to Compiler
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The next step is to add a visitor method to the compiler so it knows how to
+compile the ``ImpliesOp`` AST node to the corresponding Python AST.
+In this case, we want to compile :requirement:`A implies B` to a Python function call
+:python:`Implies(A, B)`.
+
+The visitor class used in the compiler, ``ScenicToPythonTransformer``, is a subclass of `ast.NodeTransformer`, which transforms an AST node of class ``C`` by calling a method called ``visit_C`` if one exists, otherwise just recursively transforming its child nodes.
+So to add the ability to compile ``ImpliesOp`` nodes, we'll add
+a method named ``visit_ImpliesOp``:
+
+.. code:: python
+
+   class ScenicToPythonTransformer(ast.NodeTransformer):
+        def visit_ImpliesOp(self, node: s.ImpliesOp):
+           return ast.Call(
+               func=ast.Name(id="Implies", ctx=loadCtx),
+               args=[self.visit(node.hypothesis), self.visit(node.conclusion)],
+               keywords=[],
+           )
+
+Inside the visitor, we construct a Call to a name ``Implies`` with
+:python:`node.hypothesis` and :python:`node.conclusion` as its arguments. Note that
+the arguments need to be recursively visited using :python:`self.visit`; otherwise Scenic AST nodes
+inside them won't be compiled.
+
+Step 5: Write Compiler Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similarly to step 3, we add tests for the compiler.
+
+.. code:: python
+
+   def test_implies_op(self):
+       node, _ = compileScenicAST(ImpliesOp(Name("x"), Name("y")))
+       match node:
+           case Call(Name("Implies"), [Name("x"), Name("y")]):
+               assert True
+           case _:
+               assert False
+
+``compileScenicAST`` is a function that invokes the node transformer. We
+match the compiled node against the desired structure, which in this
+case is a call to a function with two arguments.
+
+This completes adding the ``implies`` operator.
+
+
+.. _formal grammar:
+
+Scenic Grammar
+==============
+
+This page gives the formal `Parsing Expression Grammar <https://en.wikipedia.org/wiki/Parsing_expression_grammar>`_ (PEG) used to parse the Scenic language.
+It is in the format of `the Pegen parser generator <https://we-like-parsers.github.io/pegen/index.html>`_, and is based on the Python grammar from `CPython <https://github.com/python/cpython>`_ (see :file:`Grammar/python.gram` in the CPython repository).
+In the source code, the grammar can be found at :file:`src/scenic/syntax/scenic.gram`.
+
+.. literalinclude:: /../src/scenic/syntax/scenic.gram
+    :language: pegen
+
+
+scenic.core
+===========
+
+.. automodule:: scenic.core
+
+   
+   
+   .. raw:: html
+
+      <h2>Submodules</h2>
+
+   .. autosummary::
+      :recursive:
+      :toctree:
+   
+   
+      distributions
+      dynamics
+      errors
+      external_params
+      geometry
+      lazy_eval
+      object_types
+      propositions
+      pruning
+      regions
+      requirements
+      sample_checking
+      scenarios
+      serialization
+      shapes
+      simulators
+      specifiers
+      type_support
+      utils
+      vectors
+      visibility
+      workspaces
+
+   .. comment to get Sphinx to recognize end of autosummary directive
+   
+   
+
+   scenic.core.distributions
+=========================
+
+.. automodule:: scenic.core.distributions
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      Uniform
+      addSupports
+      canUnpackDistributions
+      distributionFunction
+      distributionMethod
+      makeOperatorHandler
+      monotonicDistributionFunction
+      supmax
+      supmin
+      supportInterval
+      toDistribution
+      underlyingFunction
+      unionOfSupports
+      unpacksDistributions
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      AttributeDistribution
+      ConstantSamplable
+      DiscreteRange
+      Distribution
+      FunctionDistribution
+      MethodDistribution
+      MultiplexerDistribution
+      Normal
+      OperatorDistribution
+      Options
+      Range
+      Samplable
+      SliceDistribution
+      StarredDistribution
+      TruncatedNormal
+      TupleDistribution
+      UniformDistribution
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      RandomControlFlowError
+      RejectionException
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+   
+
+
+scenic.core.dynamics
+====================
+
+.. automodule:: scenic.core.dynamics
+
+   
+   
+   .. raw:: html
+
+      <h2>Submodules</h2>
+
+   .. autosummary::
+      :recursive:
+      :toctree:
+   
+   
+      actions
+      behaviors
+      guards
+      invocables
+      scenarios
+      utils
+
+   .. comment to get Sphinx to recognize end of autosummary directive
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      stuckBehaviorWarningTimeout
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+   
+
+
+scenic.core.dynamics.actions
+============================
+
+.. automodule:: scenic.core.dynamics.actions
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      Action
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.dynamics.behaviors
+==============================
+
+.. automodule:: scenic.core.dynamics.behaviors
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      Behavior
+      Monitor
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.dynamics.guards
+===========================
+
+.. automodule:: scenic.core.dynamics.guards
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      GuardViolation
+      InvariantViolation
+      PreconditionViolation
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.dynamics.invocables
+===============================
+
+.. automodule:: scenic.core.dynamics.invocables
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      runTryInterrupt
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      BlockConclusion
+      InterruptBlock
+      Invocable
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.dynamics.scenarios
+==============================
+
+.. automodule:: scenic.core.dynamics.scenarios
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      DynamicScenario
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.dynamics.utils
+==========================
+
+.. automodule:: scenic.core.dynamics.utils
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      RejectSimulationException
+      StuckBehaviorWarning
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.errors
+==================
+
+.. automodule:: scenic.core.errors
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      verbosityLevel
+      showInternalBacktrace
+      postMortemDebugging
+      postMortemRejections
+      hiddenFolders
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      callBeginningScenicTrace
+      displayScenicException
+      excepthook
+      getText
+      includeFrame
+      optionallyDebugRejection
+      saveErrorLocation
+      setDebuggingOptions
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      ASTParseError
+      InconsistentScenarioError
+      InvalidScenarioError
+      ParseCompileError
+      PythonCompileError
+      ScenicError
+      ScenicParseError
+      ScenicSyntaxError
+      SpecifierError
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.external\_params
+============================
+
+.. automodule:: scenic.core.external_params
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      ExternalParameter
+      ExternalSampler
+      VerifaiDiscreteRange
+      VerifaiOptions
+      VerifaiParameter
+      VerifaiRange
+      VerifaiSampler
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.geometry
+====================
+
+.. automodule:: scenic.core.geometry
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      allChains
+      apparentHeadingAtPoint
+      averageVectors
+      cleanChain
+      cleanPolygon
+      cos
+      distanceToLine
+      findMinMax
+      headingOfSegment
+      hypot
+      max
+      min
+      normalizeAngle
+      plotPolygon
+      pointIsInCone
+      polygonUnion
+      removeHoles
+      rotateVector
+      sin
+      splitSelfIntersections
+      triangulatePolygon
+      triangulatePolygon_mapbox
+      viewAngleToPoint
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      TriangulationError
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.lazy\_eval
+======================
+
+.. automodule:: scenic.core.lazy_eval
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      dependencies
+      isLazy
+      makeDelayedFunctionCall
+      makeDelayedOperatorHandler
+      needsLazyEvaluation
+      needsSampling
+      requiredProperties
+      toLazyValue
+      valueInContext
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      DelayedArgument
+      LazilyEvaluable
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.object\_types
+=========================
+
+.. automodule:: scenic.core.object_types
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      Interval
+      DimensionLimits
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      defaultSideSurface
+      disableDynamicProxyFor
+      enableDynamicProxyFor
+      setDynamicProxyFor
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      Constructible
+      Mutator
+      Object
+      Object2D
+      OrientationMutator
+      OrientedPoint
+      OrientedPoint2D
+      Point
+      Point2D
+      PositionMutator
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.propositions
+========================
+
+.. automodule:: scenic.core.propositions
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      Always
+      And
+      Atomic
+      Eventually
+      Implies
+      Next
+      Not
+      Or
+      PropositionMonitor
+      PropositionNode
+      UnaryProposition
+      Until
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.pruning
+===================
+
+.. automodule:: scenic.core.pruning
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      checkConditionedCycle
+      conditionedDeps
+      conditionedVal
+      currentPropValue
+      feasibleRHPolygon
+      isFunctionCall
+      isMethodCall
+      matchInRegion
+      matchPolygonalField
+      maxDistanceBetween
+      percentagePruned
+      prune
+      pruneContainment
+      pruneRelativeHeading
+      pruneVisibility
+      relativeHeadingRange
+      unpackWorkspace
+      visibilityBound
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.regions
+===================
+
+.. automodule:: scenic.core.regions
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      everywhere
+      nowhere
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      convertToFootprint
+      orientationFor
+      regionFromShapelyObject
+      toPolygon
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      AllRegion
+      BoxRegion
+      CircularRegion
+      CylinderSectionRegion
+      DifferenceRegion
+      EmptyRegion
+      GridRegion
+      IntersectionRegion
+      MeshRegion
+      MeshSurfaceRegion
+      MeshVolumeRegion
+      PathRegion
+      PointInRegionDistribution
+      PointSetRegion
+      PolygonalFootprintRegion
+      PolygonalRegion
+      PolylineRegion
+      RectangularRegion
+      Region
+      SectorRegion
+      SpheroidRegion
+      SurfaceCollisionTrimesh
+      UnionRegion
+      ViewRegion
+      ViewSectionRegion
+      VoxelRegion
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :nosignatures:
+   
+      UndefinedSamplingException
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+
+scenic.core.requirements
+========================
+
+.. automodule:: scenic.core.requirements
+
+   
+   
+   
+
+   
+   Summary of Module Members
+   =========================
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :nosignatures:
+   
+      getAllGlobals
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      BlanketCollisionRequirement
+      BoundRequirement
+      CompiledRequirement
+      ContainmentRequirement
+      DynamicMonitorRequirement
+      DynamicRequirement
+      IntersectionRequirement
+      MonitorRequirement
+      NonVisibilityRequirement
+      PendingRequirement
+      RequirementType
+      SamplingRequirement
+      VisibilityRequirement
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   Member Details
+   ==============
+
+
+

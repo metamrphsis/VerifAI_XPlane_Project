@@ -1,0 +1,1823 @@
+Now I am going to share Scenic documentation with you for you to learn Scenic programming language in detail so that you can help me write scenic program to complete my project. Please read, study, and analyze the following Introduction and Tutorials sections from the Scenic documentation in detail:
+
+Welcome to Scenic's documentation!
+==================================
+
+Scenic is a domain-specific probabilistic programming language for modeling the environments of cyber-physical systems like robots and autonomous cars.
+A Scenic program defines a distribution over *scenes*, configurations of physical objects and agents; sampling from this distribution yields concrete scenes which can be simulated to produce training or testing data.
+Scenic can also define (probabilistic) policies for dynamic agents, allowing modeling scenarios where agents take actions over time in response to the state of the world.
+
+Scenic was designed and implemented by Daniel J. Fremont, Eric Vin, Edward Kim, Tommaso Dreossi, Shromona Ghosh, Xiangyu Yue, Alberto L. Sangiovanni-Vincentelli, and Sanjit A. Seshia, with contributions from :doc:`many others <credits>`.
+For a description of the language and some of its applications, see `our journal paper <https://doi.org/10.1007/s10994-021-06120-5>`_ on Scenic 2, which extends `our PLDI 2019 paper <https://arxiv.org/abs/1809.09310>`_ on Scenic 1; the new features in Scenic 3 are described in `our CAV 2023 paper <https://arxiv.org/abs/2307.03325>`_.
+Our :doc:`publications <publications>` page lists additional papers using Scenic.
+
+.. note::
+
+   The syntax of Scenic 3 is not completely backwards-compatible with earlier versions of Scenic, which were used in our papers prior to 2023.
+   See :doc:`new` for a list of syntax changes and new features.
+   Old code can likely be easily ported; you can also install older releases if necessary from
+   `GitHub <https://github.com/BerkeleyLearnVerify/Scenic/releases>`__.
+
+If you have any problems using Scenic, please submit an issue to `our GitHub repository <https://github.com/BerkeleyLearnVerify/Scenic>`_ or ask a question on `our community forum <https://forum.scenic-lang.org/>`_.
+
+Table of Contents
+=================
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Introduction
+
+   quickstart
+   install_notes
+   new
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+
+   tutorials/fundamentals
+   tutorials/dynamics
+   tutorials/composition
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Language and Tool Reference
+
+   syntax_guide
+   language_reference
+   options
+   api
+   developing
+   internals
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Libraries and Simulators
+
+   libraries
+   simulators
+   new_simulator
+
+.. toctree::
+   :maxdepth: 1
+   :caption: General Information
+
+   publications
+   credits
+
+Indices and Tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :doc:`glossary`
+
+License
+=======
+
+Scenic is distributed under the `3-Clause BSD License <https://opensource.org/licenses/BSD-3-Clause>`_.
+
+
+..  _quickstart:
+
+Getting Started with Scenic
+===========================
+
+Installation
+------------
+
+Scenic requires **Python 3.8** or newer.
+Run :command:`python --version` to make sure you have a new enough version; if not, you can install one from the `Python website <https://www.python.org/downloads/>`_ or using `pyenv <https://github.com/pyenv/pyenv>`_ (e.g. running :command:`pyenv install 3.11`).
+If the version of Python you want to use is called something different than just ``python`` on your system, e.g. ``python3.11``, use that name in place of ``python`` when creating a virtual environment below.
+
+There are two ways to install Scenic:
+
+* from our repository, which has the very latest features but may not be stable. The repository also contains example scenarios such as those used in the instructions below and our tutorials.
+
+* from the Python Package Index (PyPI), which will get you the latest official release of Scenic but will not include example scenarios, etc.
+
+If this is your first time using Scenic, we suggest installing from the repository so that you can try out the example scenarios.
+
+Once you've decided which method you want to use, follow the instructions below for your operating system.
+If you encounter any errors, please see our :doc:`install_notes` for suggestions.
+
+.. tabs::
+
+	.. tab:: macOS
+
+		.. include:: _templates/installation.rst
+
+	.. tab:: Linux
+
+		Start by installing the Python-Tk interface.
+		You can likely use your system's package manager; e.g. on Debian/Ubuntu run:
+
+		.. code-block:: text
+
+			sudo apt-get install python3-tk
+
+		.. include:: _templates/installation.rst
+
+	.. tab:: Windows
+
+		These instructions cover installing Scenic natively on Windows; if you are using the `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ (on Windows 10 and newer), see the WSL tab instead.
+
+		.. include:: _templates/installation.rst
+			:end-before: .. venv-setup-start
+
+		.. code-block:: text
+
+			python -m venv venv
+			venv\Scripts\activate.bat
+
+		.. include:: _templates/installation.rst
+			:start-after: .. venv-setup-end
+
+	.. tab:: WSL
+
+		These instructions cover installing Scenic on the Windows Subsystem for Linux (WSL).
+
+		If you haven't already installed WSL, you can do that by running :command:`wsl --install` (in either Command Prompt or PowerShell) and restarting your computer.
+		Then open a WSL terminal and run the following commands to install Python and the Python-Tk interface:
+
+		.. code-block:: text
+
+			sudo apt-get update
+			sudo apt-get install python3 python3-tk
+
+		.. include:: _templates/installation.rst
+			:end-before: .. venv-setup-start
+
+		.. code-block:: text
+
+			python3 -m venv venv
+			source venv/bin/activate
+
+		If you get an error about needing a package like ``python3.10-venv``, run
+
+		.. code-block:: text
+
+			sudo apt-get install python3.10-venv
+
+		(putting in the appropriate Python version) and try the commands above again.
+
+		.. include:: _templates/installation.rst
+			:start-after: .. venv-setup-end
+
+You can now verify that Scenic is properly installed by running the command:
+
+.. code-block:: text
+
+	scenic --version
+
+This should print out a message like ``Scenic 3.0.0`` showing which version of Scenic is installed.
+If you get an error (or got one earlier when following the instructions above), please see our :doc:`install_notes` for suggestions.
+
+.. note::
+
+	If a feature described in this documentation seems to be missing, your version of Scenic may be too old: take a look at :doc:`new` to see when the feature was added.
+
+To help read Scenic code, we suggest you install a syntax highlighter plugin for your text editor.
+Plugins for Sublime Text and Visual Studio Code can be installed from within those tools; for other editors supporting the TextMate grammar format, the grammar is available `here <https://github.com/UCSCFormalMethods/Scenic-tmLanguage>`__.
+
+Trying Some Examples
+--------------------
+
+The Scenic repository contains many example scenarios, found in the :file:`examples` directory.
+They are organized in various directories with the name of the simulator, abstract application domain, or visualizer they are written for. For example, :file:`gta` and :file:`webots` for the :abbr:`GTA (Grand Theft Auto V)` and Webots simulators; the :file:`driving` directory for the abstract :ref:`driving domain <driving_domain>`; and the :file:`visualizer` directory for the built in Scenic visualizer.
+
+Each simulator has a specialized Scenic interface which requires additional setup (see :ref:`simulators`); however, for convenience Scenic provides an easy way to visualize scenarios without running a simulator.
+Simply run :command:`scenic`, giving a path to a Scenic file:
+
+.. code-block:: text
+
+	scenic examples/webots/vacuum/vacuum_simple.scenic
+
+This will compile the Scenic program and sample from it (which may take several seconds), displaying a schematic of the resulting scene. Since this is a simple scenario designed to evaluate the performance of a robot vacuum, you should get something like this:
+
+.. image:: images/vacuumSimple.jpg
+	:width: 50%
+
+The green cylinder is the vacuum, surrounded by various pieces of furniture in a room.
+You can adjust the camera angle by clicking and dragging, and zoom in and out using the mouse wheel.
+If you close the window or press :kbd:`q`, Scenic will sample another scene from the same scenario and display it.
+This will repeat until you kill the generator (:kbd:`Control-c` in the terminal on Linux; :kbd:`Command-q` in the viewer window on MacOS).
+
+Some scenarios were written for older versions of Scenic, which were entirely 2D. Those scenarios should be run using the ``--2d`` command-line option, which will enable 2D backwards-compatibility mode. Information about whether or not the ``--2d`` flag should be used can be found in the :file:`README` of each example directory.
+
+One such scenario is the badly-parked car example from our GTA case study, which can be run with the following command:
+
+.. code-block:: text
+
+	scenic --2d examples/gta/badlyParkedCar2.scenic
+
+This will open Scenic's 2D viewer, and should look something like this:
+
+.. image:: images/badlyParkedCar2.png
+
+Here the circled rectangle is the ego car; its view cone extends to the right, where we see another car parked rather poorly at the side of the road (the white lines are curbs).
+(Note that on MacOS, scene generation with the 2D viewer is stopped differently than with the 3D viewer: right-click on its icon in the Dock and select Quit.)
+
+Scenarios for the other simulators can be viewed in the same way.
+Here are a few for different simulators:
+
+.. code-block:: text
+
+	scenic --2d examples/driving/pedestrian.scenic
+	scenic examples/webots/mars/narrowGoal.scenic
+	scenic --2d examples/webots/road/crossing.scenic
+
+.. image:: images/pedestrian.png
+   :width: 29%
+.. image:: images/narrowGoal.jpg
+   :width: 39%
+.. image:: images/crossing.png
+   :width: 29%
+
+The :command:`scenic` command has options for setting the random seed, running dynamic
+simulations, printing debugging information, etc.: see :ref:`options`.
+
+Learning More
+-------------
+
+Depending on what you'd like to do with Scenic, different parts of the documentation may be helpful:
+
+	* If you want to start learning how to write Scenic programs, see :ref:`tutorial`.
+
+	* If you want to learn how to write dynamic scenarios in Scenic, see :ref:`dynamics`.
+
+	* If you want to use Scenic with a simulator, see :ref:`simulators` (which also describes how to interface Scenic to a new simulator, if the one you want isn't listed).
+
+	* If you want to control Scenic from Python rather than using the command-line tool (for example if you want to collect data from the generated scenarios), see :doc:`api`.
+
+	* If you want to add a feature to the language or otherwise need to understand Scenic's inner workings, see our pages on :doc:`developing` and :ref:`internals`.
+
+If you can't find something in the documentation, or have any question about Scenic, feel free to post on our `community forum <https://forum.scenic-lang.org/>`_.
+
+
+.. _install_notes:
+
+Notes on Installing Scenic
+==========================
+
+This page describes common issues with installing Scenic and suggestions for fixing them.
+
+All Platforms
+--------------
+
+Missing Python Version
+++++++++++++++++++++++
+
+If when running :command:`pip` you get an error saying that your machine does not have a compatible version, this means that you do not have Python 3.8 or later on your PATH.
+Install a newer version of Python, either directly from the `Python website <https://www.python.org/downloads/>`_ or using `pyenv <https://github.com/pyenv/pyenv>`_ (e.g. running :command:`pyenv install 3.10.4`).
+Then use that version of Python when creating a virtual environment before installing Scenic.
+
+"setup.py" not found
+++++++++++++++++++++
+
+This error indicates that you are using too old a version of ``pip``: you need at least version 21.3.
+Run :command:`python -m pip install --upgrade pip` to upgrade.
+
+Dependency Conflicts
+++++++++++++++++++++
+
+If you install Scenic using ``pip``, you might see an error message like the following:
+
+	ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+
+This error means that in order to install Scenic, ``pip`` had to break the dependency constraints of some package you had previously installed (the error message will indicate which one).
+So while Scenic will work correctly, something else may now be broken.
+This won't happen if you install Scenic into a fresh virtual environment.
+
+Cannot Find Scenic
+++++++++++++++++++
+
+If when running the :command:`scenic` command you get a "command not found" error, or when trying to import the ``scenic`` module you get a `ModuleNotFoundError`, then Scenic has not been installed where your shell or Python respectively can find it.
+The most likely problem is that you installed Scenic for one copy of Python but are now using a different one: for example, if you installed Scenic in a Python virtual environment (which we highly recommend), you may have forgotten to activate that environment, and so are using your system Python instead.
+See the `virtual environment tutorial <https://docs.python.org/3/tutorial/venv.html>`_ for instructions.
+
+Scene Schematics Don't Appear (2D)
+++++++++++++++++++++++++++++++++++
+
+If no window appears when you ask Scenic to generate and display a scene using the :option:`--2d` flag (as in the example commands in :doc:`quickstart`), this means that Matplotlib has no `interactive backend <https://matplotlib.org/stable/users/explain/backends.html>`_ installed.
+On Linux, try installing the ``python3-tk`` package (e.g. :command:`sudo apt-get install python3-tk`).
+
+Missing SDL
++++++++++++
+
+If you get an error about `SDL <https://www.libsdl.org/>`_ being missing, you may need to install it.
+On Linux (or Windows with :ref:`WSL <wsl>`), install the ``libsdl2-dev`` package (e.g. :command:`sudo apt-get install libsdl2-dev`); on macOS, if you use `Homebrew <https://brew.sh/>`__ you can run :command:`brew install sdl2`.
+For other platforms, see the SDL website.
+
+Using a Local Scenic Version with VerifAI
++++++++++++++++++++++++++++++++++++++++++
+
+If you are using Scenic as part of the `VerifAI`_ toolkit, the VerifAI installation process will automatically install Scenic from PyPI.
+However, if you need to use your own fork of Scenic or some features which have not yet been released on PyPI, you will need to install Scenic manually in VerifAI's virtual environment.
+The easiest way to do this is as follows:
+
+1. Install VerifAI in a virtual environment of your choice.
+2. Activate the virtual environment.
+3. Change directory to your clone of the Scenic repository.
+4. Run :command:`pip install -e .`
+
+You can test that this process has worked correctly by going back to the VerifAI repo and running the Scenic part of its test suite with :command:`pytest tests/test_scenic.py`.
+
+.. note::
+
+	Installing Scenic in this way bypasses dependency resolution for VerifAI.
+	If your local version of Scenic requires different versions of some of VerifAI's dependencies, you may get errors from :command:`pip` about dependency conflicts.
+	Such errors do not actually prevent Scenic from being installed; however you may get unexpected behavior from VerifAI at runtime.
+	If you are developing forks of Scenic and VerifAI, a more stable approach would be to modify VerifAI's :file:`pyproject.toml` to point to your fork of Scenic instead of the ``scenic`` package on PyPI.
+
+.. _VerifAI: https://github.com/BerkeleyLearnVerify/VerifAI
+
+MacOS
+-----
+
+.. _pythonfcl:
+
+Installing python-fcl on Apple silicon
+++++++++++++++++++++++++++++++++++++++
+
+If on an Apple-silicon machine you get an error related to pip being unable to install ``python-fcl``, it can be installed manually using the following steps:
+
+1. Clone the `python-fcl <https://github.com/BerkeleyAutomation/python-fcl>`_ repository.
+2. Navigate to the repository.
+3. Install dependencies using `Homebrew <https://brew.sh>`__ with the following command: :command:`brew install fcl eigen octomap`
+4. Activate your virtual environment if you haven't already.
+5. Install the package using pip with the following command: :command:`CPATH=$(brew --prefix)/include:$(brew --prefix)/include/eigen3 LD_LIBRARY_PATH=$(brew --prefix)/lib python -m pip install .`
+
+Windows
+-------
+
+.. _wsl:
+
+Using WSL
++++++++++
+
+For greatest ease of installation, we recommend using the `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ (WSL, a.k.a. "Bash on Windows") on Windows 10 and newer.
+
+Some WSL users have reported encountering the error ``no display name and no $DISPLAY environmental variable``, but have had success applying the techniques outlined `here <https://github.com/microsoft/WSL/issues/4106#issuecomment-876470388>`_.
+
+It is possible to run Scenic natively on Windows; however, in the past there have been issues with some of Scenic's dependencies either not providing wheels for Windows or requiring manual installation of additional libraries.
+
+Problems building Shapely
++++++++++++++++++++++++++
+
+In the past, the ``shapely`` package did not install properly on Windows.
+If you encounter this issue, try installing it manually following the instructions `here <https://github.com/Toblerity/Shapely#built-distributions>`__.
+
+
+..  _whats_new:
+
+What's New in Scenic
+====================
+
+This page describes what new features have been added in each version of Scenic, as well as any syntax changes which break backwards compatibility.
+Scenic uses semantic versioning, so a program written for Scenic 2.1 should also work in Scenic 2.5, but not necessarily in Scenic 3.0.
+You can run :command:`scenic --version` to see which version of Scenic you are using.
+
+Scenic 3.x
+++++++++++
+
+The Scenic 3.x series adds native support for 3D geometry, precise modeling of the shapes of objects, and temporal requirements.
+It also features a new parser enabling clearer error messages, greater language extensibility, and various improvements to the syntax.
+
+See :ref:`porting to Scenic 3` for tools to help migrate existing 2D scenarios.
+
+Scenic 3.0.0
+------------
+
+Backwards-incompatible syntax changes:
+
+	* Objects must be explicitly created using the :keyword:`new` keyword, e.g. :scenic:`new Object at (1, 2)` instead of the old ``Object at (1, 2)``.
+	  This removes an ambiguity in the Scenic grammar, and makes non-creation uses of class names like :scenic:`myClasses = [Car, Bicycle, Pedestrian]` clearer.
+
+	* :ref:`Monitor definitions <monitorDef>` must include a parenthesized list of arguments, like behaviors: you should write :scenic:`monitor MyMonitor():` for example instead of the old ``monitor MyMonitor:``.
+	  Furthermore, monitors are no longer automatically enforced in the scenario where they are defined: you must explicitly instantiate them with the new :keyword:`require monitor` statement.
+
+	* As the :prop:`heading` property is now derived from the 3D :prop:`orientation` (see below), it can no longer be set directly.
+	  Classes providing a default value for :prop:`heading` should instead provide a default value for :prop:`parentOrientation`.
+	  Code like :specifier:`with heading 30 deg` should be replaced with the more idiomatic :specifier:`facing 30 deg`.
+
+Backwards-incompatible semantics changes:
+
+	* Objects are no longer required to be visible from the :scenic:`ego` by default.
+	  (The :prop:`requireVisible` property is now :scenic:`False` by default.)
+
+	* Visibility checks take occlusion into account by default (see below).
+	  The :term:`visible regions` of objects are now 3D regions.
+
+	* Checking containment of objects in regions is now precise (previously, Scenic only checked if all of the corners of the object were contained in the region).
+
+	* While evaluating a precondition or invariant of a behavior or scenario, code that would cause the simulation to be rejected (such as sampling from an empty list) is now considered as simply making the precondition/invariant false.
+
+	* The :sampref:`left of {Object}` specifier and its variants now correctly take into account the dimensions of both the object being created *and* the given object (the implementation previously did not account for the latter, despite the documentation saying otherwise).
+
+	* The :specifier:`offset by` specifier now optionally specifies :prop:`parentOrientation`.
+
+	* The :specifier:`visible` and :specifier:`not visible` specifiers now take into account occlusion and the shapes of objects. In previous versions, they only checked whether the center of the object was visible/not visible, ignoring occlusion.
+
+Backwards-incompatible API changes:
+
+	* The **maxIterations** argument of `Simulator.simulate` now has default value 1, rather than 100.
+	  A default value of 1 is the most reasonable in general since it means that when a simulation is rejected, a new scene will have to be generated (instead of trying many simulations from the same starting scene, which might well fail in the same way).
+
+	* For simulator interface writers: the `Simulator.createSimulation` and `Simulation` APIs have changed; initial creation of objects is now done automatically, and other initialization must be done in the new `Simulation.setup` method.
+	  See `scenic.core.simulators` for details.
+
+Major new features:
+
+	* Scenic uses 3D geometry.
+	  Vectors now have 3 coordinates: if a third coordinate is not provided, it is assumed to be zero, so that scenarios taking place entirely in the z=0 plane will continue to work as before.
+	  Orientations of objects in space are represented by a new :prop:`orientation` property (internally a quaternion), which is computed by applying intrinsic :prop:`yaw`, :prop:`pitch`, and :prop:`roll` rotations, given by new properties by those names.
+	  These rotations are applied to the object's :prop:`parentOrientation`, which by default aligns with the Scenic global coordinate system but is optionally specified by :keyword:`left of` and similar specifiers; this makes it easy to orient an object with respect to another object.
+	  See the relevant section of the :ref:`tutorial <orientations_tutorial>` for examples.
+
+	* Scenic models the precise shapes of objects, rather than simply using bounding boxes for collision detection and visibility checks.
+	  Objects have a new :prop:`shape` property (an instance of the `Shape` class) representing their shape; shapes can be created from standard 3D mesh formats such as STL.
+
+	* Visibility checks now take occlusion into account as well as precise shapes of objects.
+	  This is done using raytracing: the number of rays can be controlled on a per-object basis using :prop:`viewRayDensity` and related properties.
+
+	* The :keyword:`require` statement accepts arbitrary properties in Linear Temporal Logic (not just the :scenic:`require always` and :scenic:`require eventually` forms previously allowed).
+
+	* Sampled `Scene` objects can now be serialized to short sequences of bytes and restored later.
+	  Similarly, executed `Simulation` objects can be saved and replayed.
+	  See :ref:`serialization` for details.
+
+	* Scenic syntax highlighters for Sublime Text, Visual Studio Code, and other TextMate-compatible editors are now available: see :doc:`quickstart`.
+	  For users of `Pygments <https://pygments.org/>`_, the ``scenic`` package automatically installs a Pygments lexer (and associated style) for Scenic.
+
+Minor new features:
+
+	* It is no longer necessary to define an :scenic:`ego` object.
+	  If no :scenic:`ego` is defined, the ``egoObject`` attribute of a sampled `Scene` is `None`.
+
+	* Syntax errors should now always indicate the correct part of the source code.
+
+Scenic 2.x
+++++++++++
+
+The Scenic 2.x series is a major new version of Scenic which adds native support for dynamic scenarios, scenario composition, and more.
+
+Scenic 2.1.0
+------------
+
+Major new features:
+
+	* Modular scenarios and ways to compose them together, introduced as a prototype in 2.0.0, are now finalized, with many fixes and improvements. See :ref:`composition` for an overview of the new syntax.
+
+	* The :keyword:`record` statement for recording values at every step of dynamic simulations (or only at the start/end).
+
+	* A built-in Newtonian physics simulator for debugging dynamic scenarios without having to install an external simulator (see `scenic.simulators.newtonian`).
+
+	* The interface to the Webots simulator has been greatly generalized, and now supports dynamic scenarios (see `scenic.simulators.webots`).
+
+Minor new features:
+
+	* You can now write :scenic:`require {expr} as {name}` to give a name to a requirement; similarly for :scenic:`require always`, termination conditions, etc.
+
+	* Compatibility with Python 3.7 is restored. Scenic 2 now supports all versions of Python from 3.7 to 3.11.
+
+Scenic 2.0.0
+------------
+
+Backwards-incompatible syntax changes:
+
+	* The interval notation :scenic:`(low, high)` for uniform distributions has been removed: use :scenic:`Range(low, high)` instead. As a result of this change, the usual Python syntax for tuples is now legal in Scenic.
+
+	* The :prop:`height` property of `Object`, measuring its extent along the Y axis, has been renamed :prop:`length` to better match its intended use. The name :prop:`height` will be used again in a future version of Scenic with native support for 3D geometry.
+
+Major new features:
+
+	* Scenic now supports writing and executing dynamic scenarios, where agents take actions over time according to behaviors specified in Scenic. See :ref:`dynamics` for an overview of the new syntax.
+
+	* An abstract :ref:`driving_domain` allowing traffic scenarios to be written in a platform-agnostic way and executed in multiple simulators (in particular, both CARLA and LGSVL).
+	  This library includes functionality to parse road networks from standard formats (currently OpenDRIVE) and expose information about them for use in Scenic scenarios.
+
+	* A much generalized and improved interface to CARLA. (Many thanks to the CARLA team for contributing this.)
+
+	* An interface to the LGSVL driving simulator. (Many thanks to the LG team for helping develop this interface.)
+
+Minor new features:
+
+	* Operators and specifiers which take vectors as arguments will now accept tuples and lists of length 2; for example, you can write :scenic:`Object at (1, 2)`. The old syntax :scenic:`Object at 1@2` is still supported.
+
+	* The :keyword:`model` statement allows a scenario to specify which :term:`world model` it uses, while being possible to override from the command line with the :option:`--model` option.
+
+	* Global parameters can be overridden from the command line using the :option:`--param` option (e.g. to specify a different map to use for a scenario).
+
+	* The unpacking operator :scenic:`*` can now be used with :scenic:`Uniform` to select a random element of a random list/tuple (e.g. :scenic:`lane = Uniform(*network.lanes); sec = Uniform(*lane.sections)`).
+
+	* The Python built-in function `filter` is now supported, and can be used along with unpacking as above to select a random element of a random list satisfying a given condition (see :ref:`filter_func` for an example).
+
+(Many other minor features didn't make it into this list.)
+
+
+..  _tutorial:
+
+Scenic Fundamentals
+===================
+
+This tutorial motivates and illustrates the main features of Scenic, focusing on aspects
+of the language that make it particularly well-suited for describing geometric scenarios.
+We begin by walking through Scenic's core features from first principles, using simple
+toy examples displayed in Scenic's built-in visualizer. We then consider discuss two case studies in depth: using Scenic to generate traffic scenes to test and train autonomous cars (as in [F22]_, [F19]_),
+and testing a motion planning algorithm for a Mars rover able to climb over rocks. These examples
+show Scenic interfacing with actual simulators, and demonstrate how it can be applied to real problems.
+
+We'll focus here on the *spatial* aspects of scenarios; for adding *temporal* dynamics to a scenario, see our page on :ref:`dynamics`.
+
+Objects, Geometry, and Specifiers
+---------------------------------
+
+To start with, we'll construct a very basic Scenic program:
+
+.. code-block:: scenic
+	:linenos:
+
+	ego = new Object
+
+Running this program should cause a window to pop up, looking like this:
+
+.. figure:: /images/ego_box.jpg
+  :width: 40%
+  :figclass: align-center
+  :alt: Simple scenario with an ego box, rendered with Scenic's built-in visualizer.
+
+You can rotate and move the camera of the visualizer around using the mouse. The only `Object` currently present is the one we created using the ``new`` keyword
+(rendered as a green box). Since we assigned this object to the :scenic:`ego` name, it has special significance to Scenic, as we'll see later. For now it only has the effect of highlighting the
+object green in Scenic's visualizer. Pressing :kbd:`w` will render all objects as wireframes, which will allow you to see the coordinate axes in the center of 
+the ego object (at the origin).
+
+Since we didn't provide any additional information to Scenic about this object, its **properties** like :prop:`position`, :prop:`orientation`, :prop:`width`, etc. were assigned default values from the object's class: here, the built-in class `Object`, representing a physical object.
+So we end up with a generic cube at the origin.
+To define the properties of an object, Scenic provides a flexible system of **specifiers** based on the many ways one can describe the position and orientation of an object in natural language.
+We can see a few of these specifiers in action in the following slightly more complex program (see the :ref:`syntax_guide` for a summary of all the specifiers, and the :ref:`specifiers` for detailed definitions):
+
+.. code-block:: scenic
+	:linenos:
+
+	ego = new Object with shape ConeShape(),
+	        with width 2,
+	        with length 2,
+	        with height 1.5,
+	        facing (-90 deg, 45 deg, 0)
+
+	chair = new Object at (4,0,2),
+	            with shape MeshShape.fromFile(localPath("meshes/chair.obj"),
+	                initial_rotation=(0,90 deg,0), dimensions=(1,1,1))
+
+	plane_shape = MeshShape.fromFile(path=localPath("meshes/plane.obj"))
+
+	plane = new Object left of chair by 1,
+	            with shape plane_shape,
+	            with width 2,
+	            with length 2,
+	            with height 1,
+	            facing directly toward ego
+
+This should generate the following scene:
+
+.. figure:: /images/cone_plane_chair.jpg
+  :width: 60%
+  :figclass: align-center
+  :alt: A slightly more complicated scenario showing the use of specifiers.
+
+The first object we create, the :scenic:`ego`, has a cone shape. Scenic provides several built-in shapes like
+this (see `Shape` for a list). We then set the object's dimensions
+using the :specifier:`with` specifier, which can set any property (even properties not built into Scenic, which you might access in your own code or which a particular simulator might understand). Finally,
+we set the object's global orientation (its :prop:`orientation` property) using the :specifier:`facing` specifier. The tuple after :specifier:`facing`
+contains the Euler angles of the desired orientation (yaw, pitch, roll).
+
+The second object we create is first placed at a specific point in space using the :specifier:`at` specifier (setting the object's :prop:`position` property).
+We then set its shape to one imported from a mesh file, using the `MeshShape` class, applying an initial rotation to tell Scenic which side of the chair is its front.
+We also set default dimensions of the shape, which the object will then
+automatically inherit.
+If we hadn't set these default dimensions, Scenic would automatically infer the dimensions
+from the mesh file.
+
+On line 11 we load a shape from a file, specifically to highlight that since Scenic is built on top of Python,
+we can write arbitrary Python expressions in Scenic (with some exceptions).
+
+For our third and final object, we use the :specifier:`left of` specifier to place it to the left of ``chair`` (the second object) by 1 unit.
+We set its shape and dimensions, similar to before, and then orient it to face directly toward the ego object using the :specifier:`facing directly toward` specifier.
+This gives a first hint of the power of specifiers, with Scenic automatically working out how to compute the object's :prop:`orientation` so that it faces the :scenic:`ego` regardless of how we specified its :prop:`position` (in fact, we could move the :specifier:`left of` specifier to be after the :specifier:`facing directly toward` and the code would still work).
+
+Scenic will automatically reject scenarios that don't make physical sense, for instance when objects intersect each other [#f1]_.
+For an example of this, try changing the code above to have a much larger ego object, to the point where it would intersect
+with the plane. While this isn't too important in the scenarios we've seen so far, it becomes very useful when we start constructing
+*random* scenarios.
+
+Randomness and Regions
+----------------------
+
+So far all of our Scenic programs have defined concrete scenes, i.e. they uniquely define all the aspects of a scene, so every time we run the program we'll get the same scene.
+This is because so far we haven't introduced any *randomness*. Scenic is a *probabilistic programming language*,
+meaning a single Scenic program can in fact define a probability distribution over many possible scenes.
+
+Let's look at a simple Scenic program with some random elements:
+
+.. code-block:: scenic
+	:linenos:
+
+	ego = new Object with shape Uniform(BoxShape(), SpheroidShape(), ConeShape()),
+			 with width Range(1,2),
+			 with length Range(1,2),
+			 with height Range(1,3),
+			 facing (Range(0,360) deg, Range(0,360) deg, Range(0,360) deg)
+
+This will generate an object with a shape that is either a box, a spheroid, or a cone (each with equal probability).
+It will have a random width, length, and height within the ranges specified, and uniformly random rotation angles.
+Some examples:
+
+.. image:: /images/simple_random_1.jpg
+   :width: 32%
+.. image:: /images/simple_random_2.jpg
+   :width: 32%
+.. image:: /images/simple_random_3.jpg
+   :width: 32%
+
+Random values can be used almost everywhere in Scenic; the major exception is that control flow (e.g. :keyword:`if` statements and :keyword:`for` loops) cannot depend on random values.
+This restriction enables more efficient sampling (see [F19]_) and can often be worked around: for example it is still possible to select random elements satisfying desired criteria from lists (see :ref:`filter_func`).
+
+Another key construct in Scenic is a `Region`, which represents a set of points in space.
+Having defined a region of interest, for example a lane of a road, you can then sample points from it, check whether objects are contained in it, etc.
+You can also use a region to define the **workspace**, a designated region which all objects in the scenario must be contained in (useful, for example, if the simulated world has fixed obstacles that Scenic objects should not intersect).
+For example, the following code:
+
+.. code-block:: scenic
+	:linenos:
+
+	region = RectangularRegion((0,0,0), 0, 10, 10)
+	workspace = Workspace(region)
+
+	new Object in region, with shape SpheroidShape()
+	new Object in region, with shape SpheroidShape()
+	new Object in region, with shape SpheroidShape()
+
+should generate a scene similar to this:
+
+.. figure:: /images/spheres_in_region.jpg
+  :width: 60%
+  :figclass: align-center
+  :alt: Three spheres in a rectangular region
+
+Note that in this scene the coordinate axes in the center are displayed due to the :command:`--axes` flag, which can help clarify orientation.
+
+We first create a 10-unit square `RectangularRegion`, and set it as the scenario's workspace. `RectangularRegion` is a 2D region,
+meaning it does not have a volume and therefore can't really contain objects.
+It is still a valid workspace, however, since for containment checks involving 2D regions, Scenic automatically uses the region's *footprint*, which extends infinitely in the positive and negative Z directions.
+We then create 3 spherical objects and place them using the :specifier:`in` specifier, which sets the :prop:`position`
+of an object (its center) to a uniformly-random point in the given region.
+
+Similarly, we can use the :specifier:`on` specifier to place the *base* of an object uniformly at random in a region,
+where the base is by default the center of the bottom side of its bounding box.
+The :specifier:`on` specifier is also overloaded
+to work on objects, by default extracting the top surface of the object's mesh and placing the object on that.
+This can lead to very compact syntax for randomly placing objects on others, as seen in the following example:
+
+.. code-block:: scenic
+	:linenos:
+
+	workspace = Workspace(RectangularRegion((0,0,0), 0, 4, 4))
+	floor = workspace
+
+	chair = new Object on floor,
+	            with shape MeshShape.fromFile(path=localPath("meshes/chair.obj"),
+	                dimensions=(1,1,1), initial_rotation=(0, 90 deg, 0))
+
+	ego = new Object on chair,
+	            with shape ConeShape(dimensions=(0.25,0.25,0.25))
+
+which might generate something like this:
+
+.. figure:: /images/on_chair.jpg
+  :width: 80%
+  :figclass: align-center
+  :alt: A cone on a chair
+
+.. _orientations_tutorial:
+
+Orientations in Depth
+---------------------
+
+Notice how in the last example the cone is oriented to be tangent with the curved surface of the chair, even though we
+never set an orientation with :specifier:`facing`. To explain this behavior, we need to look deeper into Scenic's orientation
+system. All objects have an :prop:`orientation` property, which is their orientation in *global* coordinates [#f2]_.
+If you just want to set the orientation by giving explicit angles in global coordinates, you can use the :specifier:`facing` specifier as we saw above.
+However, it's often useful to specify the orientation of an object in terms of *some other* coordinate system, for instance that of another object.
+To support such use cases, Scenic does not allow directly setting the value of :prop:`orientation` using :specifier:`with`: instead, its value is *derived* from the values of 4 other properties, :prop:`parentOrientation`, :prop:`yaw`, :prop:`pitch`, and :prop:`roll`.
+The :prop:`parentOrientation` property defines the **parent orientation** of the object, which is the orientation with respect to which the (intrinsic Euler) angles :prop:`yaw`, :prop:`pitch`, and :prop:`roll` are interpreted.
+Specifically, :prop:`orientation` is obtained as follows:
+
+  1. start from :prop:`parentOrientation`;
+  2. apply a yaw (a :abbr:`CCW (counter-clockwise)` rotation around the positive Z axis) of :prop:`yaw`;
+  3. apply a pitch (a CCW rotation around the resulting positive X axis) of :prop:`pitch`;
+  4. apply a roll (a CCW rotation around the resulting positive Y axis) of :prop:`roll`.
+
+By default, :prop:`parentOrientation` is aligned with the global coordinate system, so that :prop:`yaw` for example is just the angle by which to rotate the object around the Z axis (this corresponds to the :prop:`heading` property in older versions of Scenic).
+But by setting :prop:`parentOrientation` to the :prop:`orientation` of another object, we can easily compose rotations together: "face the same way as the plane, but upside-down" could be implemented :specifier:`with parentOrientation plane.orientation, with roll 180 deg`.
+
+In fact it is often unnecessary to set :prop:`parentOrientation` yourself, since many of Scenic's specifiers do so automatically when there is a natural choice of orientation to use.
+This includes all specifiers which position one object in terms of another: if we write :scenic:`new Object ahead of plane by 100`, the :specifier:`ahead of` specifier specifies :prop:`position` to be 100 meters ahead of the plane but *also* specifies :prop:`parentOrientation` to be :scenic:`plane.orientation`.
+So by default the new object will be oriented the same way as the plane; to implement the "upside-down" part, we could simply write :scenic:`new Object ahead of plane by 100, with roll 180 deg`.
+Importantly, the :specifier:`ahead of` specifier here only specifies :prop:`parentOrientation` *optionally*, giving it a new default value: if you want a different value, you can override that default by explicitly writing :specifier:`with parentOrientation {value}`.
+(We'll return to how Scenic manages default values and "optional" specifications later.)
+
+Another case where a specifier sets :prop:`parentOrientation` automatically is our cone-on-a-chair example above: in the code :scenic:`new Object on chair`, the :specifier:`on` specifier not only specifies :prop:`position` to be a random point on the top surface of the chair but also specifies :prop:`parentOrientation` to be an orientation tangent to the surface at that point.
+Thus the cone lies flat on the surface by default without our needing to specify its orientation; we could even add code like :specifier:`with roll 45 deg` to rotate the cone while keeping it tangent with the surface.
+
+In general, the :specifier:`on {region}` specifier specifies :prop:`parentOrientation` whenever the region in question has a :term:`preferred orientation`: a `vector field` (another primitive Scenic type) which defines an orientation at each point in the region.
+The class `MeshSurfaceRegion`, used to represent surfaces of an object, has a default preferred orientation which is tangent to the surface, allowing us to easily place objects on irregular surfaces as we've seen.
+Preferred orientations can also be convenient for modeling the nominal driving direction on roads, for example (we'll return to this use case below).
+
+Points, Oriented Points, and Classes
+------------------------------------
+
+We've seen that Scenic has a built-in class `Object` for representing physical objects, and that individual objects are instantiated using the :keyword:`new` keyword.
+`Object` is actually the bottom class in a hierarchy of built-in Scenic classes that support this syntax: its superclass is `OrientedPoint`, whose superclass in turn is `Point`.
+The base class `Point` provides the :prop:`position` property, while its subclass `OrientedPoint` adds :prop:`orientation` (plus :prop:`parentOrientation`, :prop:`yaw`, etc.).
+These two classes do not represent physical objects and aren't included in scenes generated by Scenic, but they provide a convenient way to use specifier syntax to construct positions and orientations for later use without creating actual objects.
+A `Point` can be used anywhere where a vector is expected (e.g. :specifier:`at {point}`), and an `OrientedPoint` can also be used anywhere where an orientation is expected.
+With both a position and an orientation, an `OrientedPoint` defines a local coordinate system, and so can be used with specifiers like :specifier:`ahead of` to position objects::
+
+	spot = new OrientedPoint on curb
+	new Object left of spot by 0.25
+
+Here, suppose ``curb`` is a region with a preferred orientation aligned with the plane of the road and along the curb; then the first line creates an `OrientedPoint` at a uniformly-random position on the curb, oriented along the curb.
+So the second line then creates an `Object` offset 0.25 meters into the road, regardless of which direction the road happens to run in the global coordinate system.
+
+Scenic also allows users to define their own classes.
+In our earlier example placing spheres in a region, we explicitly wrote out the specifiers for each object we created even though they were all identical.
+Such repetition can often be avoided by using functions and loops, and by defining a class of object providing new default values for properties of interest.
+Our example could be equivalently written:
+
+.. code-block:: scenic
+	:linenos:
+
+	workspace = Workspace(RectangularRegion((0,0,0), 0, 10, 10))
+
+	class SphereObject:
+	    position: new Point in workspace
+	    shape: SpheroidShape()
+
+	for i in range(3):
+	    new SphereObject
+
+Here we define the ``SphereObject`` class, providing new default values for the :prop:`position` and :prop:`shape` properties, overriding those inherited from `Object` (the default superclass if none is explicitly given).
+So for example the default :prop:`position` for a ``SphereObject`` is the expression :scenic:`new Point in workspace`, which creates a `Point` that can be automatically interpreted as a position. This gives us a way to get the convenience of specifiers in class definitions. Note that this is a random expression, and it is evaluated independently each time a ``SphereObject`` is defined; so the loop creates 3 objects which will all have different positions (and as usual Scenic will ensure they do not overlap).
+We can still override the default value as needed: adding the line :scenic:`new SphereObject at (0,0,5)` would create a ``SphereObject`` which still used the default value of :prop:`shape` but whose :prop:`position` is exactly :scenic:`(0,0,5)`.
+
+In addition to the special syntax seen above for defining properties of a class and instantiating an instance of a class, Scenic classes support inheritance and methods in the same way as Python::
+
+	class Vehicle:
+	    pass
+	class Taxicab(Vehicle):
+	    magicNumber: 42
+
+	    def myMethod(self, x):
+	        return self.width + self.magicNumber + x
+
+	ego = new Taxicab with magicNumber 1729
+	y = ego.myMethod(3.14)
+
+
+Models and Simulators
+---------------------
+
+For the next part of this tutorial, we'll move beyond the internal Scenic visualizer to an actual simulator.
+Specifically, we will consider examples from our case study using Scenic to generate traffic scenes in GTA V to test and train autonomous cars ([F19]_, [F22]_).
+
+To start, suppose we want scenes of one car viewed from another on the road. We can write
+this very concisely in Scenic:
+
+.. py:currentmodule:: scenic.simulators.gta.model
+
+.. code-block:: scenic
+	:linenos:
+
+	from scenic.simulators.gta.model import Car
+	ego = new Car
+	new Car
+
+Line 1 imports the GTA :term:`world model`, a Scenic library defining everything specific to our
+GTA interface. This includes the definition of the class :obj:`Car`, as well as information
+about the road geometry that we'll see later. We'll suppress this :scenic:`import` statement in
+subsequent examples.
+
+Line 2 then creates a :scenic:`Car` and assigns it to the special variable :scenic:`ego` specifying the
+*ego object*, which we've seen before. This is the reference point for the scenario: our simulator interfaces
+typically use it as the viewpoint for rendering images, and many of Scenic's geometric
+operators use :scenic:`ego` by default when a position is left implicit [#f3]_.
+
+Finally, line 3 creates a second :scenic:`Car`. Compiling this scenario with Scenic, sampling a
+scene from it, and importing the scene into GTA V yields an image like this:
+
+.. figure:: /images/simplest2.jpg
+  :width: 80%
+  :figclass: align-center
+  :alt: Simple car scenario image.
+
+  A scene sampled from the simple car scenario, rendered in GTA V.
+
+Note that both the :scenic:`ego` car (where the camera is located) and the second car are both
+located on the road and facing along it, despite the fact that the code above does not
+specify the position or any other properties of the two cars. This is because reasonable default values for these properties have already
+been defined in the :scenic:`Car` definition (shown here slightly simplified):
+
+.. code-block::
+	:linenos:
+
+	class Car:
+	    position: new Point on road
+	    heading: roadDirection at self.position    # note: can only set `heading` in 2D mode
+	    width: self.model.width
+	    length: self.model.length
+	    model: CarModel.defaultModel()	# a distribution over several car models
+	    requireVisible: True    # so all cars appear in the rendered images
+
+
+Here ``road`` is a region defined in the `gta` model to specify which points in the workspace 
+are on a road. Similarly, ``roadDirection`` is a `vector field` specifying the nominal traffic direction 
+at such points. The operator :scenic:`{F} at {X}` simply gets the direction of the field *F* at point *X*, so line 3
+sets a :scenic:`Car`'s default heading to be the road direction at its :prop:`position`. The default
+:prop:`position`, in turn, is a :scenic:`new Point on road`, which means a uniformly random point on the road. 
+Thus, in our simple scenario above both cars will be placed on the road facing a reasonable direction, without our having to
+specify this explicitly.
+
+One further point of interest in the code above is that the default value for :prop:`heading` depends on the value of :prop:`position`, and the default values of :prop:`width` and :prop:`length` depend on :prop:`model`.
+Scenic allows default value expressions to use the special syntax :scenic:`self.{property}` to refer to the value of another property of the object being defined: Scenic tracks the resulting dependencies and evaluates the expressions in an appropriate order (or raises an error if there are any cyclic dependencies).
+This capability is also frequently used by specifiers, as we explain next.
+
+
+Specifiers in Depth
+-------------------
+
+Why Specifiers?
++++++++++++++++
+
+The syntax :specifier:`left of {X}` and :specifier:`facing {Y}` for specifying positions and
+orientations may seem unusual compared to typical constructors in object-oriented
+languages. There are two reasons why Scenic uses this kind of syntax: first, readability.
+The second is more subtle and based on the fact that in natural language there are many
+ways to specify positions and other properties, some of which interact with each other.
+Consider the following ways one might describe the location of a car:
+
+	1. "is at position *X*" (an absolute position)
+	2. "is just left of position *X*" (a position based on orientation)
+	3. "is 3 m West of the taxi" (a relative position)
+	4. "is 3 m left of the taxi" (a local coordinate system)
+	5. "is one lane left of the taxi" (another local coordinate system)
+	6. "appears to be 10 m behind the taxi" (relative to the line of sight)
+	7. "is 10 m along the road from the taxi" (following a potentially-curving vector
+	   field)
+
+These are all fundamentally different from each other: for example, (4) and (5) differ if
+the taxi is not parallel to the lane.
+
+Furthermore, these specifications combine other properties of the object in different
+ways: to place the object "just left of" a position, we must first know the object's
+:prop:`orientation`; whereas if we wanted to face the object "towards" a location, we must
+instead know its :prop:`position`. There can be chains of such *dependencies*: for example,
+the description "the car is 0.5 m left of the curb" means that the *right edge* of the
+car is 0.5 m away from the curb, not its center, which is what the car's :prop:`position`
+property stores. So the car's :prop:`position` depends on its :prop:`width`, which in turn
+depends on its :prop:`model`. In a typical object-oriented language, these dependencies might
+be handled by first computing values for :prop:`position` and all other properties, then
+passing them to a constructor. For "a car is 0.5 m left of the curb" we might write
+something like:
+
+.. code-block:: python
+
+	# hypothetical Python-like language (not Scenic)
+	model = Car.defaultModelDistribution.sample()
+	pos = curb.offsetLeft(0.5 + model.width / 2)
+	car = Car(pos, model=model)
+
+Notice how ``model`` must be used twice, because ``model`` determines both the model of
+the car and (indirectly) its position. This is inelegant, and breaks encapsulation
+because the default model distribution is used outside of the :scenic:`Car` constructor. The
+latter problem could be fixed by having a specialized constructor or factory function:
+
+.. code-block:: python
+
+	# hypothetical Python-like language (not Scenic)
+	car = CarLeftOfBy(curb, 0.5)
+
+However, such functions would proliferate since we would need to handle all possible
+combinations of ways to specify different properties (e.g. do we want to require a
+specific model? Are we overriding the width provided by the model for this specific
+car?). Instead of having a multitude of such monolithic constructors, Scenic uses specifiers to factor the
+definition of objects into potentially-interacting but syntactically-independent parts::
+
+	new Car left of curb by 0.5,
+	        with model CarModel.models['BUS']
+
+Here the specifiers :specifier:`left of {X} by {D}` and :specifier:`with model {M}` do not
+have an order, but *together* specify the properties of the car. Scenic works out
+the dependencies between properties (here, :prop:`position` is provided by :specifier:`left of`, which
+depends on :prop:`width`, whose default value depends on :prop:`model`) and evaluates them in the
+correct order. To use the default model distribution we would simply omit line 2; keeping
+it affects the :prop:`position` of the car appropriately without having to specify ``BUS``
+more than once.
+
+Dependencies and Modifying Specifiers
++++++++++++++++++++++++++++++++++++++
+
+In addition to explicit dependencies when one specifier uses a property defined by another, Scenic also tracks dependencies which arise when an expression implicitly refers to the properties of the object being defined.
+For example, suppose we wanted to elaborate the scenario above by saying the car is oriented up to 5° off of the nominal traffic direction.
+We can write this using the ``roadDirection`` vector field and Scenic's general operator
+:scenic:`{X} relative to {Y}`, which can interpret vectors and orientations as being in a
+variety of local coordinate systems::
+
+	new Car left of curb by 0.5,
+	        facing Range(-5, 5) deg relative to roadDirection
+
+Notice that since ``roadDirection`` is a vector field, it defines a different local
+coordinate system at each point in space: at different points on the map, roads point
+different directions! Thus an expression like :scenic:`15 deg relative to field` does not
+define a unique heading. The example above works because Scenic knows that the
+expression :scenic:`Range(-5, 5) deg relative to roadDirection` depends on a reference
+position, and automatically uses the :prop:`position` of the :scenic:`Car` being defined.
+
+Another kind of dependency arises from **modifying specifiers**, which are specifiers that can take an *already-specified* value for a property and modify it (thereby in a sense both depending on that property and specifying it).
+The main example is the :specifier:`on {region}` specifier, which in addition to the usage we saw above for placing an object randomly within a region, also can be used as a modifying specifier: if the :prop:`position` property has already been specified, then :specifier:`on {region}` *projects* that position onto the region.
+So for example the code :scenic:`new Object ahead of plane by 100, on ground` does not raise an error even though both :specifier:`ahead of` and :specifier:`on` specify :prop:`position`: Scenic first computes a position 100 m ahead of the plane, and then projects that position down onto the ground.
+
+Specifier Priorities
+++++++++++++++++++++
+
+As we've discussed previously, specifiers can specify multiple properties, and they can specify some properties *optionally*, allowing other specifiers to override them.
+In fact, when a specifier specifies a property it does so with a **priority** represented by a positive integer.
+A property specified with priority 1 cannot be overridden; increasingly large integers represent lower priorities, so a priority-2 specifier overrides one with priority 3.
+This system enables more-specific specifiers to naturally take precedence over more general specifiers while reducing the amount of boilerplate code you need to write.
+Consider for example the following sequence of object creations, where we provide progressively more information about the object:
+
+* In :scenic:`new Object ahead of plane by 100`, the :specifier:`ahead of` specifier specifies :prop:`parentOrientation` with priority 3, so that the new object is aligned with the plane (a reasonable default since we're positioning the object with respect to the plane).
+
+* In :scenic:`new Object ahead of plane by 100, on ground`, the :specifier:`on ground` specifies :prop:`parentOrientation` with priority 2, so it takes precedence and the object is aligned with the ground rather than the plane (which makes more sense since "on ground" implies the object likely lies flat on the ground).
+
+* Finally, in :scenic:`new Object ahead of plane by 100, on ground, with parentOrientation (0, 90 deg, 0)`, the :specifier:`with` specifier specifies :prop:`parentOrientation` with priority 1, so it takes precedence and Scenic uses the explicit orientation the user provided.
+
+As these examples show, specifier priorities enable concise specifications of objects to have intuitive default behavior when no explicit information is given, while at the same time overriding this behavior remains straightforward.
+
+For a more thorough look at the specifier system, including which specifiers specify which properties and at which priorities, consult the :ref:`specifiers`.
+
+Declarative Hard and Soft Constraints
+-------------------------------------
+
+Notice that in the scenarios above we never explicitly ensured that two cars will not
+intersect each other. Despite this, Scenic will never generate such scenes. This is
+because Scenic enforces several *default requirements*, as mentioned above:
+
+	* All objects must be contained in the :term:`workspace`, or a particular specified region (its :term:`container`).
+	  For example, we can define the :scenic:`Car` class so that all of its instances must be
+	  contained in the region ``road`` by default.
+
+	* Objects must not intersect each other (unless explicitly allowed).
+
+Scenic also allows the user to define custom requirements checking arbitrary conditions
+built from various geometric predicates. For example, the following scenario produces a
+car headed roughly towards the camera, while still facing the nominal road direction::
+
+	ego = new Car on road
+	car2 = new Car offset by (Range(-10, 10), Range(20, 40)), with viewAngle 30 deg
+	require car2 can see ego
+
+Here we have used the :scenic:`{X} can see {Y}` predicate, which in this case is checking
+that the ego car is inside the 30° view cone of the second car.
+
+Requirements, called *observations* in other probabilistic programming languages, are
+very convenient for defining scenarios because they make it easy to restrict attention to
+particular cases of interest. Note how difficult it would be to write the scenario above
+without the :scenic:`require` statement: when defining the ego car, we would have to somehow
+specify those positions where it is possible to put a roughly-oncoming car 20--40 meters
+ahead (for example, this is not possible on a one-way road). Instead, we can simply place
+:scenic:`ego` uniformly over all roads and let Scenic work out how to condition the
+distribution so that the requirement is satisfied [#f4]_. As this example illustrates,
+the ability to declaratively impose constraints gives Scenic greater versatility than
+purely-generative formalisms. Requirements also improve encapsulation by allowing us to
+restrict an existing scenario without altering it. For example::
+
+	from myScenarioLib import genericTaxiScenario    # import another Scenic scenario
+	fifthAvenue = ...             # extract a Region from a map here
+	require genericTaxiScenario.taxi in fifthAvenue
+
+The constraints in our examples above are *hard requirements* which must always be
+satisfied. Scenic also allows imposing *soft requirements* that need only be true with
+some minimum probability::
+
+	require[0.5] car2 can see ego	# condition only needs to hold with prob. >= 0.5
+
+Such requirements can be useful, for example, in ensuring adequate representation of a
+particular condition when generating a training set: for instance, we could require that
+at least 90% of generated images have a car driving on the right side of the road.
+
+Mutations
+---------
+
+A common testing paradigm is to randomly generate *variations* of existing tests. Scenic
+supports this paradigm by providing syntax for performing mutations in a compositional
+manner, adding variety to a scenario without changing its code. For example, given a
+complex scenario involving a taxi, we can add one additional line::
+
+	from bigScenario import taxi
+	mutate taxi
+
+The :scenic:`mutate` statement will add Gaussian noise to the :prop:`position` and :prop:`orientation`
+properties of ``taxi``, while still enforcing all built-in and custom requirements. The
+standard deviation of the noise can be scaled by writing, for example,
+:scenic:`mutate taxi by 2` (which adds twice as much noise), and in fact can be controlled
+separately for :prop:`position` and :prop:`orientation` (see `scenic.core.object_types.Mutator`).
+
+A Worked Example
+----------------
+
+We conclude with a larger example of a Scenic program which also illustrates the
+language's utility across domains and simulators. Specifically, we consider the problem
+of testing a motion planning algorithm for a Mars rover able to climb over hills and rocks. Such
+robots can have very complex dynamics, with the feasibility of a motion plan depending on
+exact details of the robot's hardware and the geometry of the terrain. We can use Scenic
+to write a scenario generating challenging cases for a planner to solve in simulation.
+Some of the specifiers and operators we'll use have not been discussed before in the tutorial; 
+as usual, information about them can be found in the :ref:`syntax_guide`.
+
+We will write a scenario representing a hilly field of rocks and pipes with a
+bottleneck between the rover and its goal that forces the path planner to consider
+climbing over a rock. First, we import a small Scenic library for the Webots robotics
+simulator and a mars specific library which defines the (empty) workspace and several types of objects: 
+the :scenic:`Rover` itself, the :scenic:`Goal` (represented by a flag), the :scenic:`MarsGround` and :scenic:`MarsHill` 
+classes which are used to create the hilly terrain, and debris classes :scenic:`Rock`, :scenic:`BigRock`, 
+and :scenic:`Pipe`. :scenic:`Rock` and :scenic:`BigRock` have fixed sizes, and
+the rover can climb over them; :scenic:`Pipe` cannot be climbed over, and can represent a pipe of
+arbitrary length, controlled by the :prop:`length` property (which corresponds to Scenic's
+*Y* axis).
+
+.. code-block::
+	:linenos:
+
+	model scenic.simulators.webots.mars.model
+	from mars_lib import *
+
+Here we've used the :keyword:`model` statement to select the :term:`world model` for the scenario: it is equivalent to :scenic:`from scenic.simulators.webots.model import *` except that the choice of model can be overridden from the command line when compiling the scenario (using the :option:`--model` option).
+This is useful for scenarios that use one of Scenic's :ref:`domains`: the scenario can be written once in a simulator-agnostic manner, then used with different simulators by selecting the appropriate simulator-specific world model.
+
+Now we can start to create objects. The first object we will create will be the hilly ground. To do this, we use the :scenic:`MarsGround` which has a :prop:`terrain` property which should be set to a collection of :scenic:`MarsHill` classes, each of which adds a gaussian hill to the ground. Note that the :scenic:`MarsGround` object has :prop:`allowCollisions` set to ``True``, allowing objects to intersect and be slightly embedded in the ground. In the following code we create a ground object with 60 small hills (which are allowed to stack on top of each other):
+
+.. code-block::
+	:lineno-start: 5
+
+	ground = new MarsGround on (0,0,0), with terrain [new MarsHill for _ in range(60)]
+
+We next create the rover at a fixed position and the goal at a random position on the
+other side of the workspace, ensuring both are on the ground:
+
+.. code-block::
+	:lineno-start: 8
+
+	ego = new Rover at (0, -3), on ground, with controller 'sojourner'
+	goal = new Goal at (Range(-2, 2), Range(2, 3)), on ground, facing (0,0,0)
+
+Next we pick a position for the bottleneck, requiring it to lie roughly on the way from
+the robot to its goal, and place a rock there. Here we use the simple form of :specifier:`facing` which takes a scalar argument, effectively setting the yaw of the object in the global coordinate system (so that :scenic:`0 deg` is due North, for example, and :scenic:`90 deg` is due West).
+
+.. code-block::
+	:lineno-start: 15
+
+	bottleneck = new OrientedPoint at ego offset by Range(-1.5, 1.5) @ Range(0.5, 1.5), facing Range(-30, 30) deg
+	require abs((angle to goal) - (angle to bottleneck)) <= 10 deg
+	new BigRock at bottleneck, on ground
+
+Note how we define ``bottleneck`` as an :scenic:`OrientedPoint`, with a range of possible
+orientations: this is to set up a local coordinate system for positioning the pipes
+making up the bottleneck. Specifically, we position two pipes of varying lengths on
+either side of the bottleneck, projected onto the ground, with their ends far enough apart for the robot to be able
+to pass between. Note that we explicitly specify :prop:`parentOrientation` to be the global coordinate system, which
+prevents the pipes from lying tangent to the ground as we want them flat and partially embedded in the ground.
+
+.. code-block::
+	:lineno-start: 16
+
+	gap = 1.2 * ego.width
+	halfGap = gap / 2
+
+	leftEdge = new OrientedPoint left of bottleneck by halfGap,
+	    facing Range(60, 120) deg relative to bottleneck.heading
+	rightEdge = new OrientedPoint right of bottleneck by halfGap,
+	    facing Range(-120, -60) deg relative to bottleneck.heading
+
+	new Pipe ahead of leftEdge, with length Range(1, 2), on ground, facing leftEdge, with parentOrientation 0
+	new Pipe ahead of rightEdge, with length Range(1, 2), on ground, facing rightEdge, with parentOrientation 0
+
+
+Finally, to make the scenario slightly more interesting, we add several additional
+obstacles, positioned either on the far side of the bottleneck or anywhere at random
+(recalling that Scenic automatically ensures that no objects will overlap).
+
+.. code-block::
+	:lineno-start: 29
+
+	new Pipe on ground, with parentOrientation 0
+	new BigRock beyond bottleneck by Range(0.25, 0.75) @ Range(0.75, 1), on ground
+	new BigRock beyond bottleneck by Range(-0.75, -0.25) @ Range(0.75, 1), on ground
+	new Rock on ground
+	new Rock on ground
+	new Rock on ground
+
+This completes the scenario, which can also be found in the Scenic repository under
+:file:`examples/webots/mars/narrowGoal.scenic`. Scenes generated from the
+scenario, and visualized in Scenic's internal visualizer and Webots, are shown below.
+
+.. figure:: /images/narrowGoal.jpg
+  :width: 80%
+  :figclass: align-center
+  :alt: Mars rover scenario image, rendered in Scenic's internal visualizer.
+
+  A scene sampled from the Mars rover scenario, rendered in Scenic's internal visualizer.
+
+
+.. figure:: /images/narrowGoalWebots.jpg
+  :width: 80%
+  :figclass: align-center
+  :alt: Mars rover scenario image, rendered in Webots.
+
+  A scene sampled from the Mars rover scenario, rendered in Webots.
+
+
+Further Reading
+---------------
+
+This tutorial illustrated the syntax of Scenic through several simple examples. Much more
+complex scenarios are possible, such as the platoon and bumper-to-bumper traffic GTA V
+scenarios shown below. For many further examples using a variety of simulators, see the
+:file:`examples` folder, as well as the links in the :ref:`simulators` page.
+
+.. image:: /images/platoon2.jpg
+   :width: 32%
+.. image:: /images/platoon3.jpg
+   :width: 32%
+.. image:: /images/platoon4.jpg
+   :width: 32%
+
+.. image:: /images/btb1.jpg
+   :width: 32%
+.. image:: /images/btb3.jpg
+   :width: 32%
+.. image:: /images/btb4.jpg
+   :width: 32%
+
+Our tutorial on :ref:`dynamics` describes how to define scenarios
+with dynamic agents that move or take other actions over time.
+We also have a tutorial on :ref:`composition`: defining scenarios in a modular, reusable way and combining them to build up more complex scenarios.
+
+For a comprehensive overview of Scenic's syntax, including details on all specifiers,
+operators, distributions, statements, and built-in classes, see the
+:ref:`syntax_details`. Our :ref:`syntax_guide` summarizes all of these language
+constructs in convenient tables with links to the detailed documentation.
+
+.. rubric:: Footnotes
+
+.. [#f1] Although collisions can be allowed on a per-object basis: see the :prop:`allowCollisions` property of `Object`.
+
+.. [#f2] Represented as an instance of the `Orientation` class, which internally uses
+	 quaternions (although you shouldn't need to worry about that). In the rare case where
+	 you need to manipulate orientations beyond what Scenic's operators provide, see the
+	 documentation for `Orientation`.
+
+.. [#f3] In fact, since :scenic:`ego` is a variable and can be reassigned, we can set :scenic:`ego` to
+   one object, build a part of the scene around it, then reassign :scenic:`ego` and build
+   another part of the scene.
+
+.. [#f4] On the other hand, Scenic may have to work hard to satisfy difficult
+   constraints. Ultimately Scenic falls back on rejection sampling, which in the worst
+   case will run forever if the constraints are inconsistent (although we impose a limit
+   on the number of iterations: see `Scenario.generate`).
+
+.. rubric:: References
+
+.. [F22] Fremont et al., :t:`Scenic: A Language for Scenario Specification and Data Generation`, Machine Learning, 2022. `[Online] <https://doi.org/10.1007/s10994-021-06120-5>`_
+
+.. [F19] Fremont et al., :t:`Scenic: A Language for Scenario Specification and Scene Generation`, PLDI 2019.
+
+
+..  _dynamics:
+
+Dynamic Scenarios
+=================
+
+.. py:currentmodule:: scenic.domains.driving.model
+
+The :ref:`tutorial` described how Scenic can model scenarios like "a badly-parked car" by defining spatial relationships between objects.
+Here, we'll cover how to model *temporal* aspects of scenarios: for a scenario like "a badly-parked car, which pulls into the road as the ego car approaches", we need to specify not only the initial position of the car but how it behaves over time.
+
+Agents, Actions, and Behaviors
+------------------------------
+
+In Scenic, we call objects which take actions over time *dynamic agents*, or simply
+*agents*. These are ordinary Scenic objects, so we can still use all of Scenic's syntax
+for describing their initial positions, orientations, etc. In addition, we specify their
+dynamic behavior using a built-in property called :prop:`behavior`. Here's an example using
+one of the built-in behaviors from the :ref:`driving_domain`::
+
+    model scenic.domains.driving.model
+    new Car with behavior FollowLaneBehavior
+
+A behavior defines a sequence of *actions* for the agent to take, which need not be fixed
+but can be probabilistic and depend on the state of the agent or other objects. In
+Scenic, an :term:`action` is an instantaneous operation executed by an agent, like
+setting the steering angle of a car or turning on its headlights. Most actions are
+specific to particular application domains, and so different sets of actions are provided
+by different simulator interfaces. For example, the :ref:`driving_domain` defines a
+`SetThrottleAction` for cars.
+
+To define a behavior, we write a function which runs over the course of the scenario,
+periodically issuing actions. Scenic uses a discrete notion of time, so at each time
+step the function specifies zero or more actions for the agent to take. For example, here
+is a very simplified version of the :obj:`FollowLaneBehavior` above::
+
+    behavior FollowLaneBehavior():
+        while True:
+            throttle, steering = ...    # compute controls
+            take SetThrottleAction(throttle), SetSteerAction(steering)
+
+We intend this behavior to run for the entire scenario, so we use an infinite loop. In
+each step of the loop, we compute appropriate throttle and steering controls, then use
+the :keyword:`take` statement to take the corresponding actions. When that statement is
+executed, Scenic pauses the behavior until the next time step of the simulation, when the
+function resumes and the loop repeats.
+
+When there are multiple agents, all of their behaviors run in parallel; each time step,
+Scenic sends their selected actions to the simulator to be executed and advances the
+simulation by one step. It then reads back the state of the simulation, updating the
+positions and other :term:`dynamic properties` of the objects.
+
+.. figure:: /images/scenic-sim.png
+  :width: 50%
+  :figclass: align-center
+  :alt: Diagram showing interaction between Scenic and a simulator.
+
+Behaviors can access the current state of the world to decide what actions to take::
+
+    behavior WaitUntilClose(threshold=15):
+        while (distance from self to ego) > threshold:
+            wait
+        do FollowLaneBehavior()
+
+Here, we repeatedly query the distance from the agent running the behavior (:scenic:`self`)
+to the ego car; as long as it is above a threshold, we :keyword:`wait`, which means take no
+actions. Once the threshold is met, we start driving by invoking the :obj:`FollowLaneBehavior`
+we saw above using the :keyword:`do` statement. Since :obj:`FollowLaneBehavior` runs forever, we will
+never return to the ``WaitUntilClose`` behavior.
+
+The example above also shows how behaviors may take arguments, like any Scenic function.
+Here, ``threshold`` is an argument to the behavior which has default value 15 but can be
+customized, so we could write for example::
+
+    ego = new Car
+    car2 = new Car visible, with behavior WaitUntilClose
+    car3 = new Car visible, with behavior WaitUntilClose(20)
+
+Both ``car2`` and ``car3`` will use the ``WaitUntilClose`` behavior, but independent
+copies of it with thresholds of 15 and 20 respectively.
+
+Unlike ordinary Scenic code, control flow constructs such as :scenic:`if` and :scenic:`while` are
+allowed to depend on random variables inside a behavior. Any distributions defined inside
+a behavior are sampled at simulation time, not during scene sampling. Consider the
+following behavior:
+
+.. code-block::
+    :linenos:
+
+    behavior Foo():
+        threshold = Range(4, 7)
+        while True:
+            if self.distanceToClosest(Pedestrian) < threshold:
+                strength = TruncatedNormal(0.8, 0.02, 0.5, 1)
+                take SetBrakeAction(strength), SetThrottleAction(0)
+            else:
+                take SetThrottleAction(0.5), SetBrakeAction(0)
+
+Here, the value of ``threshold`` is sampled only once, at the beginning of the scenario
+when the behavior starts running. The value ``strength``, on the other hand, is sampled
+every time control reaches line 5, so that every time step when the car is braking we use
+a slightly different braking strength (0.8 on average, but with Gaussian noise added with
+standard deviation 0.02, truncating the possible values to between 0.5 and 1).
+
+Interrupts
+----------
+
+It is frequently useful to take an existing behavior and add a complication to it; for
+example, suppose we want a car that follows a lane, stopping whenever it encounters an
+obstacle. Scenic provides a concept of *interrupts* which allows us to reuse the basic
+:obj:`FollowLaneBehavior` without having to modify it::
+
+    behavior FollowAvoidingObstacles():
+        try:
+            do FollowLaneBehavior()
+        interrupt when self.distanceToClosest(Object) < 5:
+            take SetBrakeAction(1)
+
+This :keyword:`try-interrupt` statement has similar syntax to the Python
+:ref:`try statement <python:try>` (and in fact allows ``except`` clauses just as in
+Python), and begins in the same way: at first, the code block after the :scenic:`try:` (the
+*body*) is executed. At the start of every time step during its execution, the condition
+from each ``interrupt`` clause is checked; if any are true, execution of the body is
+suspended and we instead begin to execute the corresponding *interrupt handler*. In the
+example above, there is only one interrupt, which fires when we come within 5 meters of
+any object. When that happens, :obj:`FollowLaneBehavior` is paused and we instead apply full
+braking for one time step. In the next step, we will resume :obj:`FollowLaneBehavior` wherever
+it left off, unless we are still within 5 meters of an object, in which case the
+interrupt will fire again.
+
+If there are multiple ``interrupt`` clauses, successive clauses take precedence over
+those which precede them. Furthermore, such higher-priority interrupts can fire even
+during the execution of an earlier interrupt handler. This makes it easy to model a
+hierarchy of behaviors with different priorities; for example, we could implement a car
+which drives along a lane, passing slow cars and avoiding collisions, along the
+following lines::
+
+    behavior Drive():
+        try:
+            do FollowLaneBehavior()
+        interrupt when self.distanceToNextObstacle() < 20:
+            do PassingBehavior()
+        interrupt when self.timeToCollision() < 5:
+            do CollisionAvoidance()
+
+Here, the car begins by lane following, switching to passing if there is a car or other
+obstacle too close ahead. During *either* of those two sub-behaviors, if the time to
+collision gets too low, we switch to collision avoidance. Once the ``CollisionAvoidance``
+behavior completes, we will resume whichever behavior was interrupted earlier. If we were
+in the middle of ``PassingBehavior``, it will run to completion (possibly being
+interrupted again) before we finally resume ``FollowLaneBehavior``.
+
+As this example illustrates, when an interrupt handler completes, by default we resume
+execution of the interrupted code. If this is undesired, the :keyword:`abort` statement can be
+used to cause the entire try-interrupt statement to exit. For example, to run a behavior
+until a condition is met without resuming it afterward, we can write::
+
+    behavior ApproachAndTurnLeft():
+        try:
+            do FollowLaneBehavior()
+        interrupt when (distance from self to intersection) < 10:
+            abort    # cancel lane following
+        do WaitForTrafficLightBehavior()
+        do TurnLeftBehavior()
+
+This is a common enough use case of interrupts that Scenic provides a shorthand notation::
+
+    behavior ApproachAndTurnLeft():
+        do FollowLaneBehavior() until (distance from self to intersection) < 10
+        do WaitForTrafficLightBehavior()
+        do TurnLeftBehavior()
+
+Scenic also provides a shorthand for interrupting a behavior after a certain period of
+time::
+
+    behavior DriveForAWhile():
+        do FollowLaneBehavior() for 30 seconds
+
+The alternative form :scenic:`do {behavior} for {n} steps` uses time steps instead of real
+simulation time.
+
+Finally, note that when try-interrupt statements are nested, interrupts of the outer
+statement take precedence. This makes it easy to build up complex behaviors in a modular
+way. For example, the behavior ``Drive`` we wrote above is relatively complicated, using
+interrupts to switch between several different sub-behaviors. We would like to be able to
+put it in a library and reuse it in many different scenarios without modification.
+Interrupts make this straightforward; for example, if for a particular scenario we want a
+car that drives normally but suddenly brakes for 5 seconds when it reaches a certain
+area, we can write::
+
+    behavior DriveWithSuddenBrake():
+        haveBraked = False
+        try:
+            do Drive()
+        interrupt when self in targetRegion and not haveBraked:
+            do StopBehavior() for 5 seconds
+            haveBraked = True
+
+With this behavior, ``Drive`` operates as it did before, interrupts firing as appropriate
+to switch between lane following, passing, and collision avoidance. But during any of
+these sub-behaviors, if the car enters the ``targetRegion`` it will immediately brake for
+5 seconds, then pick up where it left off.
+
+Stateful Behaviors
+------------------
+
+As the last example shows, behaviors can use local variables to maintain state, which is
+useful when implementing behaviors which depend on actions taken in the past. To
+elaborate on that example, suppose we want a car which usually follows the ``Drive``
+behavior, but every 15-30 seconds stops for 5 seconds. We can implement this behavior as
+follows::
+
+    behavior DriveWithRandomStops():
+        delay = Range(15, 30) seconds
+        last_stop = 0
+        try:
+            do Drive()
+        interrupt when simulation().currentTime - last_stop > delay:
+            do StopBehavior() for 5 seconds
+            delay = Range(15, 30) seconds
+            last_stop = simulation().currentTime
+
+Here ``delay`` is the randomly-chosen amount of time to run ``Drive`` for,
+and ``last_stop`` keeps track of the time when we last started to run it. When the time
+elapsed since ``last_stop`` exceeds ``delay``, we interrupt ``Drive`` and
+stop for 5 seconds. Afterwards, we pick a new ``delay`` before the next stop, and save
+the current time in ``last_stop``, effectively resetting our timer to zero.
+
+.. note::
+
+    It is possible to change global state from within a behavior by using the Python
+    :ref:`global statement <python:global>`, for instance to communicate between
+    behaviors. If using this ability, keep in mind that the order in which behaviors of
+    different agents is executed within a single time step could affect your results. The
+    default order is the order in which the agents were defined, but it can be adjusted
+    by overriding the `Simulation.scheduleForAgents` method.
+
+Requirements and Monitors
+-------------------------
+
+Just as you can declare spatial constraints on scenes using the :keyword:`require` statement,
+you can also impose constraints on dynamic scenarios. For example, if we don't want to
+generate any simulations where ``car1`` and ``car2`` are simultaneously visible from the
+ego car, we could write::
+
+    require always not ((ego can see car1) and (ego can see car2))
+
+Here, :sampref:`always {condition}` is a *temporal operator* which can only be used inside a requirement, and which evaluates to true if and only if the condition is true at *every* time step of the scenario.
+So if the condition above is ever false during a simulation, the requirement will be violated, causing Scenic to
+reject that simulation and sample a new one. Similarly, we can require that a condition
+hold at *some* time during the scenario using the :keyword:`eventually` operator::
+
+    require eventually ego in intersection
+
+It is also possible to relate conditions at different time steps.
+For example, to require that ``car1`` enters the intersection no later than when ``car2`` does, we can use the :keyword:`until` operator::
+
+    require car2 not in intersection until car1 in intersection
+    require eventually car2 in intersection
+
+Temporal operators can be combined with Boolean operators to build up more complex requirements [#f1]_, e.g.::
+
+    require (always car.speed < 30) implies (always distance to car > 10)
+
+See `Temporal Operators` for a complete list of the available operators and their semantics.
+
+You can also use the ordinary :keyword:`require` statement inside a behavior to require that a
+given condition hold at a certain point during the execution of the behavior. For
+example, here is a simple elaboration of the ``WaitUntilClose`` behavior we saw above which requires that no pedestrian comes close to :scenic:`self` until the ego does (after which we place no further restrictions)::
+
+    behavior WaitUntilClose(threshold=15):
+        while distance from self to ego > threshold:
+            require self.distanceToClosest(Pedestrian) > threshold
+            wait
+        do FollowLaneBehavior()
+
+If you want to enforce a complex requirement that isn't conveniently expressible either using the temporal operators built into Scenic or by modifying a behavior, you can define a :term:`monitor`.
+Like behaviors, monitors are functions which run in parallel
+with the scenario, but they are not associated with any agent and any actions they take
+are ignored (so you might as well only use the :keyword:`wait` statement). Here is a monitor
+for requiring that a given car spends at most a certain amount of time in the intersection:
+
+.. code-block::
+    :linenos:
+
+    monitor LimitTimeInIntersection(car, limit=100):
+        stepsInIntersection = 0
+        while True:
+            require stepsInIntersection <= limit
+            if car in intersection:
+                stepsInIntersection += 1
+            wait
+
+We use the variable ``stepsInIntersection`` to remember how many time steps ``car`` has spent in the intersection; if it ever exceeds the limit, the requirement on line 4 will fail and we will reject the simulation.
+Note the necessity of the :keyword:`wait` statement on line 7: if we omitted it, the
+loop could run forever without any time actually passing in the simulation.
+
+Like behaviors, monitors can take parameters, allowing a monitor defined in a library to
+be reused in various situations. To instantiate a monitor in a scenario, use the
+:keyword:`require monitor` statement::
+
+    require monitor LimitTimeInIntersection(ego)
+    require monitor LimitTimeInIntersection(taxi, limit=200)
+
+..  _guards:
+
+Preconditions and Invariants
+----------------------------
+
+Even general behaviors designed to be used in multiple scenarios may not operate
+correctly from all possible starting states: for example, :obj:`FollowLaneBehavior` assumes
+that the agent is actually in a lane rather than, say, on a sidewalk. To model such
+assumptions, Scenic provides a notion of *guards* for behaviors. Most simply, we can
+specify one or more *preconditions*::
+
+    behavior MergeInto(newLane):
+        precondition: self.lane is not newLane and self.road is newLane.road
+        ...
+
+Here, the precondition requires that whenever the ``MergeInto`` behavior is executed by
+an agent, the agent must not already be in the destination lane but should be on the same
+road. We can add any number of such preconditions; like ordinary requirements, violating
+any precondition causes the simulation to be rejected.
+
+Since behaviors can be interrupted, it is possible for a behavior to resume execution in
+a state it doesn't expect: imagine a car which is lane following, but then swerves onto
+the shoulder to avoid an accident; naïvely resuming lane following, we find we are no
+longer in a lane. To catch such situations, Scenic allows us to define *invariants* which
+are checked at every time step during the execution of a behavior, not just when it
+begins running. These are written similarly to preconditions::
+
+    behavior FollowLaneBehavior():
+        invariant: self in road
+        ...
+
+While the default behavior for guard violations is to reject the simulation, in some
+cases it may be possible to recover from a violation by taking some additional actions.
+To enable this kind of design, Scenic signals guard violations by raising a
+`GuardViolation` exception which can be caught like any other exception; the simulation
+is only rejected if the exception propagates out to the top level. So to model the
+lane-following-with-collision-avoidance behavior suggested above, we could write code
+like this::
+
+    behavior Drive():
+        while True:
+            try:
+                do FollowLaneBehavior()
+            interrupt when self.distanceToClosest(Object) < 5:
+                do CollisionAvoidance()
+            except InvariantViolation:   # FollowLaneBehavior has failed
+                do GetBackOntoRoad()
+
+When any object comes within 5 meters, we suspend lane following and switch to collision
+avoidance. When the ``CollisionAvoidance`` behavior completes, ``FollowLaneBehavior``
+will be resumed; if its invariant fails because we are no longer on the road, we catch
+the resulting `InvariantViolation` exception and run a ``GetBackOntoRoad`` behavior to
+restore the invariant. The whole ``try`` statement then completes, so the outermost loop
+iterates and we begin lane following once again.
+
+Terminating the Scenario
+------------------------
+
+By default, scenarios run forever, unless the :option:`--time` option is used to impose a
+time limit. However, scenarios can also define termination criteria using the
+:keyword:`terminate when` statement; for example, we could decide to end a scenario as soon as
+the ego car travels at least a certain distance::
+
+    start = new Point on road
+    ego = new Car at start
+    terminate when (distance to start) >= 50
+
+Additionally, the :keyword:`terminate` statement can be used inside behaviors and monitors: if
+it is ever executed, the scenario ends. For example, we can use a monitor to terminate
+the scenario once the ego spends 30 time steps in an intersection::
+
+    monitor StopAfterTimeInIntersection:
+        totalTime = 0
+        while totalTime < 30:
+            if ego in intersection:
+                totalTime += 1
+            wait
+        terminate
+
+.. note::
+
+    In order to make sure that requirements are not violated, termination criteria are
+    only checked *after* all requirements. So if in the same time step a monitor uses the
+    :keyword:`terminate` statement but another behavior uses :keyword:`require` with a false condition,
+    the simulation will be rejected rather than terminated.
+
+..  _dynamics_running_examples:
+
+Trying Some Examples
+--------------------
+
+You can see all of the above syntax in action by running some of our examples of dynamic
+scenarios. We have examples written for the CARLA and LGSVL driving simulators, and those
+in :file:`examples/driving` in particular are designed to use Scenic's abstract
+:ref:`driving domain <driving_domain>` and so work in either of these simulators, as well
+as Scenic's built-in Newtonian physics simulator. The Newtonian simulator is convenient
+for testing and simple experiments; you can find details on how to install the more
+realistic simulators in our :ref:`simulators` page (they should work on both Linux and
+Windows, but not macOS, at the moment).
+
+Let's try running
+:file:`examples/driving/badlyParkedCarPullingIn.scenic`, which implements the "a
+badly-parked car, which pulls into the road as the ego car approaches" scenario we
+mentioned above. To start out, you can run it like any other Scenic scenario to get the
+usual schematic diagram of the generated scenes:
+
+.. code-block:: console
+
+    $ scenic examples/driving/badlyParkedCarPullingIn.scenic --2d
+
+To run dynamic simulations, add the :option:`--simulate` option (:option:`-S` for short).
+Since this scenario is not written for a particular simulator, you'll need to specify
+which one you want by using the :option:`--model` option (:option:`-m` for short) to
+select the corresponding Scenic :term:`world model`: for example, to use the Newtonian simulator we could add
+``--model scenic.simulators.newtonian.driving_model``. It's also a good idea to put a time bound on
+the simulations, which we can do using the :option:`--time` option.
+
+.. code-block:: console
+
+    $ scenic examples/driving/badlyParkedCarPullingIn.scenic \
+        --2d       \
+        --simulate \
+        --model scenic.simulators.newtonian.driving_model \
+        --time 200
+
+Running the scenario in CARLA is exactly the same, except we use the
+``--model scenic.simulators.carla.model`` option instead (make sure to start CARLA
+running first). For LGSVL, the one difference is that this scenario
+specifies a map which LGSVL doesn't have built in; fortunately, it's easy to switch to a
+different map. For scenarios using the :ref:`driving domain <driving_domain>`, the map
+file is specified by defining a :term:`global parameter` ``map``, and for the LGSVL interface we
+use another parameter ``lgsvl_map`` to specify the name of the map in LGSVL (the CARLA
+interface likewise uses a parameter ``carla_map``). These parameters can be set at the
+command line using the :option:`--param` option (:option:`-p` for short); for example,
+let's pick the "BorregasAve" LGSVL map, an OpenDRIVE file for which is included in the
+Scenic repository. We can then run a simulation by starting LGSVL in "API Only" mode and
+invoking Scenic as follows:
+
+.. code-block:: console
+
+    $ scenic examples/driving/badlyParkedCarPullingIn.scenic \
+        --2d       \
+        --simulate \
+        --model scenic.simulators.lgsvl.model \
+        --time 200 \
+        --param map assets/maps/LGSVL/borregasave.xodr \
+        --param lgsvl_map BorregasAve
+
+Try playing around with different example scenarios and different choices of maps (making
+sure that you keep the ``map`` and ``lgsvl_map``/``carla_map`` parameters consistent).
+For both CARLA and LGSVL, you don't have to restart the simulator between scenarios: just
+kill Scenic [#f2]_ and restart it with different arguments.
+
+Further Reading
+---------------
+
+This tutorial illustrated most of Scenic's core syntax for dynamic scenarios. As with the
+rest of Scenic's syntax, these constructs are summarized in our :ref:`syntax_guide`, with
+links to detailed documentation in the :ref:`syntax_details`. You may also be interested
+in some other sections of the documentation:
+
+    :ref:`composition`
+        Building more complex scenarios out of simpler ones in a modular way.
+
+    :ref:`simulators`
+        Details on which simulator interfaces support dynamic scenarios.
+
+    :ref:`dynamic scenario semantics`
+        The gory details of exactly how behaviors run, monitors are checked, etc. (probably not worth reading unless you're having a subtle timing issue).
+
+.. rubric:: Footnotes
+
+.. [#f1] For those familiar with temporal logic, you can encode any formula of Linear Temporal Logic.
+
+.. [#f2] Or use the :option:`--count` option to have Scenic automatically terminate after
+    a desired number of simulations.
+
+
+..  _composition:
+
+Composing Scenarios
+===================
+
+.. py:currentmodule:: scenic.domains.driving.model
+
+Scenic provides facilities for defining multiple scenarios in a single program and *composing* them in various ways.
+This enables writing a library of scenarios which can be repeatedly used as building blocks to construct more complex scenarios.
+
+Modular Scenarios
+-----------------
+
+The :keyword:`scenario <scenario-stmt>` statement defines a named, reusable scenario, optionally with tunable parameters: what we call a :term:`modular scenario`.
+For example, here is a scenario which creates a parked car on the shoulder of the :scenic:`ego`'s current lane (assuming there is one), using some APIs from the :ref:`driving_domain`::
+
+    scenario ParkedCar(gap=0.25):
+        precondition: ego.laneGroup._shoulder != None
+        setup:
+            spot = new OrientedPoint on visible ego.laneGroup.curb
+            parkedCar = new Car left of spot by gap
+
+The ``setup`` block contains Scenic code which executes when the scenario is instantiated, and which can define classes, create objects, declare requirements, etc. as in any ordinary Scenic scenario.
+Additionally, we can define preconditions and invariants, which operate in the same way as for :ref:`dynamic behaviors <guards>`.
+
+Having now defined the ``ParkedCar`` scenario, we can use it in a more complex scenario, potentially multiple times::
+
+    scenario Main():
+        setup:
+            ego = new Car
+        compose:
+            do ParkedCar(), ParkedCar(0.5)
+
+Here our ``Main`` scenario itself only creates the ego car; then its ``compose`` block orchestrates how to run other modular scenarios.
+In this case, we invoke two copies of the ``ParkedCar`` scenario in parallel, specifying in one case that the gap between the parked car and the curb should be 0.5 m instead of the default 0.25.
+So the scenario will involve three cars in total, and as usual Scenic will automatically ensure that they are all on the road and do not intersect.
+
+Parallel and Sequential Composition
+-----------------------------------
+
+The scenario above is an example of *parallel* composition, where we use the :keyword:`do` statement to run two scenarios at the same time.
+We can also use *sequential* composition, where one scenario begins after another ends.
+This is done the same way as in behaviors: in fact, the ``compose`` block of a scenario is executed in the same way as a monitor, and allows all the same control-flow constructs.
+For example, we could write a ``compose`` block as follows:
+
+.. code-block::
+    :linenos:
+
+    while True:
+        do ParkedCar(gap=0.25) for 30 seconds
+        do ParkedCar(gap=0.5) for 30 seconds
+
+Here, a new parked car is created every 30 seconds, [#f1]_ with the distance to the curb alternating between 0.25 and 0.5 m.
+Note that without the :scenic:`for 30 seconds` qualifier, we would never get past line 2, since the ``ParkedCar`` scenario does not define any termination conditions using :keyword:`terminate when` (or :keyword:`terminate` in a ``compose`` block) and so runs forever by default.
+If instead we want to create a new car only when the :scenic:`ego` has passed the current one, we can use a :keyword:`do-until` statement::
+
+    while True:
+        subScenario = ParkedCar(gap=0.25)
+        do subScenario until (distance past subScenario.parkedCar) > 10
+
+Note how we can refer to the ``parkedCar`` variable created in the ``ParkedCar`` scenario as a property of the scenario.
+Combined with the ability to pass objects as parameters of scenarios, this is convenient for reusing objects across scenarios.
+
+Interrupts, Overriding, and Initial Scenarios
+---------------------------------------------
+
+The :keyword:`try-interrupt` statement used in behaviors can also be used in ``compose`` blocks to switch between scenarios.
+For example, suppose we already have a scenario where the :scenic:`ego` is following a ``leadCar``, and want to elaborate it by adding a parked car which suddenly pulls in front of the lead car.
+We could write a ``compose`` block as follows:
+
+.. code-block::
+    :linenos:
+
+    following = FollowingScenario()
+    try:
+        do following
+    interrupt when (distance to following.leadCar) < 10:
+        do ParkedCarPullingAheadOf(following.leadCar)
+
+If the ``ParkedCarPullingAheadOf`` scenario is defined to end shortly after the parked car finishes entering the lane, the interrupt handler will complete and Scenic will resume executing ``FollowingScenario`` on line 3 (unless the :scenic:`ego` is still within 10 m of the lead car).
+
+Suppose that we want the lead car to behave differently while the parked car scenario is running; for example, perhaps the behavior for the lead car defined in ``FollowingScenario`` does not handle a parked car suddenly pulling in.
+To enable changing the :prop:`behavior` or other properties of an object in a sub-scenario, Scenic provides the :keyword:`override` statement, which we can use as follows::
+
+    scenario ParkedCarPullingAheadOf(target):
+        setup:
+            override target with behavior FollowLaneAvoidingCollisions
+            parkedCar = new Car left of ...
+
+Here we override the :prop:`behavior` property of ``target`` for the duration of the scenario, reverting it back to its original value (and thereby continuing to execute the old behavior) when the scenario terminates.
+The :sampref:`override {object} {specifier}, {...}` statement takes a comma-separated list of specifiers like an :ref:`instance creation <objectCreate>`, and can specify any properties of the object except for :term:`dynamic properties` like :prop:`position` or :prop:`speed` which can only be indirectly controlled by taking actions.
+
+In order to allow writing scenarios which can both stand on their own and be invoked during another scenario, Scenic provides a special conditional statement testing whether we are inside the *initial scenario*, i.e., the very first scenario to run.
+For instance::
+
+    scenario TwoLanePedestrianScenario():
+        setup:
+            if initial scenario:  # create ego on random 2-lane road
+                roads = filter(lambda r: len(r.lanes) == 2, network.roads)
+                road = Uniform(*roads)  # pick uniformly from list
+                ego = new Car on road
+            else:  # use existing ego car; require it is on a 2-lane road
+                require len(ego.road.lanes) == 2
+                road = ego.road
+            new Pedestrian on visible road.sidewalkRegion, with behavior ...
+
+Random Selection of Scenarios
+-----------------------------
+
+For very general scenarios, like "driving through a city, encountering typical human traffic", we may want a variety of different events and interactions to be possible.
+We saw in the :ref:`dynamics` tutorial how we can write behaviors for individual agents which choose randomly between possible actions; Scenic allows us to do the same with entire scenarios.
+Most simply, since scenarios are first-class objects, we can write functions which operate on them, perhaps choosing a scenario from a list of options based on some complex criterion::
+
+    chosenScenario = pickNextScenario(ego.position, ...)
+    do chosenScenario
+
+However, some scenarios may only make sense in certain contexts; for example, a red light runner scenario can take place only at an intersection.
+To facilitate modeling such situations, Scenic provides variants of the :keyword:`do` statement which randomly choose scenarios to run amongst only those whose preconditions are satisfied:
+
+.. code-block::
+    :linenos:
+
+    do choose RedLightRunner, Jaywalker, ParkedCar(gap=0.5)
+    do choose {RedLightRunner: 2, Jaywalker: 1, ParkedCar(gap=0.5): 1}
+    do shuffle RedLightRunner, Jaywalker, ParkedCar
+
+Here, line 1 checks the preconditions of the three given scenarios, then executes one (and only one) of the enabled scenarios. If for example the current road has no shoulder, then ``ParkedCar`` will be disabled and we will have a 50/50 chance of executing either ``RedLightRunner`` or ``Jaywalker`` (assuming their preconditions are satisfied).
+If *none* of the three scenarios are enabled, Scenic will reject the simulation.
+Line 2 shows a non-uniform variant, where ``RedLightRunner`` is twice as likely to be chosen as each of the other scenarios (so if only ``ParkedCar`` is disabled, we will pick ``RedLightRunner`` with probability 2/3; if none are disabled, 2/4).
+Finally, line 3 is a shuffled variant, where *all three* scenarios will be executed, but in random order. [#f2]_
+
+
+.. rubric:: Footnotes
+
+.. [#f1] In a real implementation, we would probably want to require that the parked car is not initially visible from the :scenic:`ego`, to avoid the sudden appearance of cars out of nowhere.
+
+.. [#f2] Respecting preconditions, so in particular the simulation will be rejected if at some point none of the remaining scenarios to execute are enabled.
